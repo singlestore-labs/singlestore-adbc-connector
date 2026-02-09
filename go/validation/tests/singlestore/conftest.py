@@ -66,7 +66,7 @@ def dsn(
     creds: tuple[str, str],
     singlestore_host: str,
     singlestore_port: str,
-    singlestore_database: str
+    singlestore_database: str,
 ) -> str:
     """
     Constructs a SingleStore DSN in Go SingleStore Driver's native format.
