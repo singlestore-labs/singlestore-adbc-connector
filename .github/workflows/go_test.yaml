@@ -197,7 +197,7 @@ jobs:
             source .env.test
           fi
           set +a
-          pixi run adbc-make build DEBUG=true VERBOSE=true DRIVER=mysql
+          pixi run adbc-make build DEBUG=true VERBOSE=true DRIVER=singlestore
 
       - name: Start Test Dependencies
         # Can't use Docker on macOS AArch64 runners, and Windows containers
@@ -252,11 +252,11 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: docs
-          path: "go/generated/mysql.md"
+          path: "go/generated/singlestore.md"
           retention-days: 2
 
   build:
-    name: "Build mysql/${{ matrix.platform }}_${{ matrix.arch }}"
+    name: "Build singlestore/${{ matrix.platform }}_${{ matrix.arch }}"
     needs: test
     runs-on: ${{ matrix.runner }}
     strategy:
@@ -309,12 +309,12 @@ jobs:
             source .env.release
           fi
           set +a
-          pixi run adbc-make check CI=true VERBOSE=true DRIVER=mysql
+          pixi run adbc-make check CI=true VERBOSE=true DRIVER=singlestore
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
         with:
           name: drivers-${{ matrix.platform }}-${{ matrix.arch }}
-          path: "go/build/libadbc_driver_mysql.*"
+          path: "go/build/libadbc_driver_singlestore.*"
           retention-days: 2
 
   package:
@@ -367,7 +367,7 @@ jobs:
           pixi install
 
           pixi run adbc-gen-package \
-            --name mysql \
+            --name singlestore \
             --root $(pwd) \
             --manifest-template manifest.toml \
             ${{ (inputs.release && '--release') || '' }}\

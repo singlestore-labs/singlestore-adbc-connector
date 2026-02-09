@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module github.com/adbc-drivers/mysql
+module github.com/singlestore-labs/singlestore-adbc-connector
 
 go 1.25.5
 

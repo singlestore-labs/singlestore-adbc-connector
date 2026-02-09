@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package singlestore
 
 import (
 	"context"
@@ -33,17 +33,18 @@ import (
 	"github.com/go-ext/variant"
 )
 
-// MySQLTypeConverter provides MySQL-specific type conversion enhancements
-type mySQLTypeConverter struct {
+// singlestoreTypeConverter provides SingleStore-specific type conversion enhancements
+type singlestoreTypeConverter struct {
 	sqlwrapper.DefaultTypeConverter
 }
 
-// ConvertRawColumnType implements TypeConverter with MySQL-specific enhancements
-func (m *mySQLTypeConverter) ConvertRawColumnType(colType sqlwrapper.ColumnType) (arrow.DataType, bool, arrow.Metadata, error) {
+// ConvertRawColumnType implements TypeConverter with SingleStore-specific enhancements
+func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.ColumnType) (arrow.DataType, bool, arrow.Metadata, error) {
 	typeName := strings.ToUpper(colType.DatabaseTypeName)
 	nullable := colType.Nullable
 
 	switch typeName {
+	// TODO: update to handle SingleStore-specific data types
 	case "BIT":
 		// Handle BIT type as binary data
 		metadataMap := map[string]string{
@@ -59,21 +60,21 @@ func (m *mySQLTypeConverter) ConvertRawColumnType(colType sqlwrapper.ColumnType)
 		return arrow.BinaryTypes.Binary, nullable, metadata, nil
 
 	case "GEOMETRY", "POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON":
-		// Convert MySQL spatial types to binary with spatial metadata
+		// Convert SingleStore spatial types to binary with spatial metadata
 		// TODO: we should use geoarrow extension types if applicable
 		metadata := arrow.MetadataFrom(map[string]string{
 			"sql.database_type_name": colType.DatabaseTypeName,
 			"sql.column_name":        colType.Name,
-			"mysql.is_spatial":       "true",
+			"singlestore.is_spatial": "true",
 		})
 		return arrow.BinaryTypes.Binary, nullable, metadata, nil
 
 	case "ENUM", "SET":
 		// Handle ENUM/SET as string with special metadata
 		metadataMap := map[string]string{
-			"sql.database_type_name": colType.DatabaseTypeName,
-			"sql.column_name":        colType.Name,
-			"mysql.is_enum_set":      "true",
+			"sql.database_type_name":  colType.DatabaseTypeName,
+			"sql.column_name":         colType.Name,
+			"singlestore.is_enum_set": "true",
 		}
 
 		if colType.Length != nil {
@@ -112,19 +113,20 @@ func (m *mySQLTypeConverter) ConvertRawColumnType(colType sqlwrapper.ColumnType)
 	}
 }
 
-// CreateInserter creates MySQL-specific inserters bound to builders for enhanced performance
-func (m *mySQLTypeConverter) CreateInserter(field *arrow.Field, builder array.Builder) (sqlwrapper.Inserter, error) {
-	// Check for MySQL-specific types first
+// CreateInserter creates SingleStore-specific inserters bound to builders for enhanced performance
+func (m *singlestoreTypeConverter) CreateInserter(field *arrow.Field, builder array.Builder) (sqlwrapper.Inserter, error) {
+	// Check for SingleStore-specific types first
 	switch field.Type.(type) {
+	// TODO: update to handle SingleStore-specific data types
 	case *extensions.JSONType:
-		return &mysqlJSONInserter{builder: builder}, nil
+		return &singlestoreJSONInserter{builder: builder}, nil
 	case *arrow.BinaryType:
 		if dbTypeName, ok := field.Metadata.GetValue("sql.database_type_name"); ok && dbTypeName == "BIT" {
-			return &mysqlBitInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
+			return &singlestoreBitInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
 		}
-		// Handle MySQL spatial types
+		// Handle SingleStore spatial types
 		if isSpatial, ok := field.Metadata.GetValue("mysql.is_spatial"); ok && isSpatial == "true" {
-			return &mysqlSpatialInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
+			return &singlestoreSpatialInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
 		}
 		// Fall through to default for non-spatial binary
 		return m.DefaultTypeConverter.CreateInserter(field, builder)
@@ -134,12 +136,12 @@ func (m *mySQLTypeConverter) CreateInserter(field *arrow.Field, builder array.Bu
 	}
 }
 
-// MySQL-specific inserters
-type mysqlJSONInserter struct {
+// SingleStore-specific inserters
+type singlestoreJSONInserter struct {
 	builder array.Builder
 }
 
-func (ins *mysqlJSONInserter) AppendValue(sqlValue any) error {
+func (ins *singlestoreJSONInserter) AppendValue(sqlValue any) error {
 	if sqlValue == nil {
 		ins.builder.AppendNull()
 		return nil
@@ -147,7 +149,7 @@ func (ins *mysqlJSONInserter) AppendValue(sqlValue any) error {
 
 	t, ok := sqlValue.([]byte)
 	if !ok {
-		return fmt.Errorf("expected []byte for mysql json inserter, got %T", sqlValue)
+		return fmt.Errorf("expected []byte for singlestore json inserter, got %T", sqlValue)
 	}
 
 	// For extension types, we need to use AppendValueFromString
@@ -155,11 +157,11 @@ func (ins *mysqlJSONInserter) AppendValue(sqlValue any) error {
 	return ins.builder.AppendValueFromString(string(t))
 }
 
-type mysqlBitInserter struct {
+type singlestoreBitInserter struct {
 	builder array.BinaryLikeBuilder
 }
 
-func (ins *mysqlBitInserter) AppendValue(sqlValue any) error {
+func (ins *singlestoreBitInserter) AppendValue(sqlValue any) error {
 	if sqlValue == nil {
 		ins.builder.AppendNull()
 		return nil
@@ -167,18 +169,18 @@ func (ins *mysqlBitInserter) AppendValue(sqlValue any) error {
 
 	t, ok := sqlValue.([]byte)
 	if !ok {
-		return fmt.Errorf("expected []byte for mysql bit inserter, got %T", sqlValue)
+		return fmt.Errorf("expected []byte for singlestore bit inserter, got %T", sqlValue)
 	}
 
 	ins.builder.Append(t)
 	return nil
 }
 
-type mysqlSpatialInserter struct {
+type singlestoreSpatialInserter struct {
 	builder array.BinaryLikeBuilder
 }
 
-func (ins *mysqlSpatialInserter) AppendValue(sqlValue any) error {
+func (ins *singlestoreSpatialInserter) AppendValue(sqlValue any) error {
 	if sqlValue == nil {
 		ins.builder.AppendNull()
 		return nil
@@ -186,20 +188,20 @@ func (ins *mysqlSpatialInserter) AppendValue(sqlValue any) error {
 
 	t, ok := sqlValue.([]byte)
 	if !ok {
-		return fmt.Errorf("expected []byte for mysql spatial inserter, got %T", sqlValue)
+		return fmt.Errorf("expected []byte for singlestore spatial inserter, got %T", sqlValue)
 	}
 
 	ins.builder.Append(t)
 	return nil
 }
 
-// ConvertArrowToGo implements MySQL-specific Arrow value to Go value conversion
-func (m *mySQLTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, index int, field *arrow.Field) (any, error) {
+// ConvertArrowToGo implements SingleStore-specific Arrow value to Go value conversion
+func (m *singlestoreTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, index int, field *arrow.Field) (any, error) {
 	if arrowArray.IsNull(index) {
 		return nil, nil
 	}
 
-	// Handle MySQL-specific Arrow to Go conversions
+	// Handle SingleStore-specific Arrow to Go conversions
 	switch a := arrowArray.(type) {
 	case *extensions.JSONArray:
 		// Handle JSON extension type arrays
@@ -208,14 +210,14 @@ func (m *mySQLTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, index int,
 		return v, nil
 
 	case *array.Time32:
-		// For MySQL driver, always convert Time32 arrays to time-only format strings
+		// For SingleStore driver, always convert Time32 arrays to time-only format strings
 		// This handles both explicit TIME column metadata and parameter binding scenarios
 		timeType := a.DataType().(*arrow.Time32Type)
 		t := a.Value(index).ToTime(timeType.Unit)
 		return t.Format("15:04:05.000000"), nil
 
 	case *array.Time64:
-		// For MySQL driver, always convert Time64 arrays to time-only format strings
+		// For SingleStore driver, always convert Time64 arrays to time-only format strings
 		// This handles both explicit TIME column metadata and parameter binding scenarios
 		timeType := a.DataType().(*arrow.Time64Type)
 		t := a.Value(index).ToTime(timeType.Unit)
@@ -241,51 +243,51 @@ func (m *mySQLTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, index int,
 	}
 }
 
-// mysqlConnectionImpl extends sqlwrapper connection with DbObjectsEnumerator
-type mysqlConnectionImpl struct {
+// singlestoreConnectionImpl extends sqlwrapper connection with DbObjectsEnumerator
+type singlestoreConnectionImpl struct {
 	*sqlwrapper.ConnectionImplBase // Embed sqlwrapper connection for all standard functionality
 
 	version string
 }
 
 // implements BulkIngester interface
-var _ sqlwrapper.BulkIngester = (*mysqlConnectionImpl)(nil)
+var _ sqlwrapper.BulkIngester = (*singlestoreConnectionImpl)(nil)
 
 // implements DbObjectsEnumerator interface
-var _ driverbase.DbObjectsEnumerator = (*mysqlConnectionImpl)(nil)
+var _ driverbase.DbObjectsEnumerator = (*singlestoreConnectionImpl)(nil)
 
 // implements CurrentNameSpacer interface
-var _ driverbase.CurrentNamespacer = (*mysqlConnectionImpl)(nil)
+var _ driverbase.CurrentNamespacer = (*singlestoreConnectionImpl)(nil)
 
 // implements TableTypeLister interface
-var _ driverbase.TableTypeLister = (*mysqlConnectionImpl)(nil)
+var _ driverbase.TableTypeLister = (*singlestoreConnectionImpl)(nil)
 
-// mysqlConnectionFactory creates MySQL connections
-type mysqlConnectionFactory struct{}
+// singlestoreConnectionFactory creates SingleStore connections
+type singlestoreConnectionFactory struct{}
 
 // CreateConnection implements sqlwrapper.ConnectionFactory
-func (f *mysqlConnectionFactory) CreateConnection(
+func (f *singlestoreConnectionFactory) CreateConnection(
 	ctx context.Context,
 	conn *sqlwrapper.ConnectionImplBase,
 ) (sqlwrapper.ConnectionImpl, error) {
-	// Wrap the pre-built sqlwrapper connection with MySQL-specific functionality
-	return &mysqlConnectionImpl{
+	// Wrap the pre-built sqlwrapper connection with SingleStore-specific functionality
+	return &singlestoreConnectionImpl{
 		ConnectionImplBase: conn,
 	}, nil
 }
 
-// NewDriver constructs the ADBC Driver for "mysql".
+// NewDriver constructs the ADBC Driver for "singlestore".
 func NewDriver(alloc memory.Allocator) adbc.Driver {
-	vendorName := "MySQL"
-	typeConverter := &mySQLTypeConverter{
+	vendorName := "SingleStore"
+	typeConverter := &singlestoreTypeConverter{
 		DefaultTypeConverter: sqlwrapper.DefaultTypeConverter{VendorName: vendorName},
 	}
 
-	driver := sqlwrapper.NewDriver(alloc, "mysql", vendorName, NewMySQLDBFactory(), typeConverter).
-		WithConnectionFactory(&mysqlConnectionFactory{}).
-		WithErrorInspector(MySQLErrorInspector{})
+	driver := sqlwrapper.NewDriver(alloc, "singlestore", vendorName, NewSingleStoreDBFactory(), typeConverter).
+		WithConnectionFactory(&singlestoreConnectionFactory{}).
+		WithErrorInspector(SingleStoreErrorInspector{})
 	driver.DriverInfo.MustRegister(map[adbc.InfoCode]any{
-		adbc.InfoDriverName:      "ADBC Driver Foundry Driver for MySQL",
+		adbc.InfoDriverName:      "ADBC Driver Foundry Driver for SingleStore",
 		adbc.InfoVendorSql:       true,
 		adbc.InfoVendorSubstrait: false,
 	})

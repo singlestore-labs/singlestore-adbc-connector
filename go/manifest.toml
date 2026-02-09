@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name = "ADBC Driver Foundry Driver for MySQL"
-description = "An ADBC Driver for MySQL developed by the ADBC Driver Foundry"
-publisher = "ADBC Drivers Contributors"
+name = "ADBC Driver for SingleStore"
+description = "An ADBC Driver for SingleStore"
+publisher = "SingleStore"
 license = "Apache-2.0"
 
 [ADBC]

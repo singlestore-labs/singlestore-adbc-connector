@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package singlestore
 
 import (
 	"context"
@@ -29,7 +29,7 @@ import (
 )
 
 // GetCurrentCatalog implements driverbase.CurrentNamespacer.
-func (c *mysqlConnectionImpl) GetCurrentCatalog() (string, error) {
+func (c *singlestoreConnectionImpl) GetCurrentCatalog() (string, error) {
 	var database string
 	err := c.Db.QueryRowContext(context.Background(), "SELECT DATABASE()").Scan(&database)
 	if err != nil {
@@ -42,25 +42,25 @@ func (c *mysqlConnectionImpl) GetCurrentCatalog() (string, error) {
 }
 
 // GetCurrentDbSchema implements driverbase.CurrentNamespacer.
-func (c *mysqlConnectionImpl) GetCurrentDbSchema() (string, error) {
+func (c *singlestoreConnectionImpl) GetCurrentDbSchema() (string, error) {
 	return "", nil
 }
 
 // SetCurrentCatalog implements driverbase.CurrentNamespacer.
-func (c *mysqlConnectionImpl) SetCurrentCatalog(catalog string) error {
+func (c *singlestoreConnectionImpl) SetCurrentCatalog(catalog string) error {
 	_, err := c.Db.ExecContext(context.Background(), "USE "+quoteIdentifier(catalog))
 	return err
 }
 
 // SetCurrentDbSchema implements driverbase.CurrentNamespacer.
-func (c *mysqlConnectionImpl) SetCurrentDbSchema(schema string) error {
+func (c *singlestoreConnectionImpl) SetCurrentDbSchema(schema string) error {
 	if schema != "" {
-		return c.ErrorHelper.InvalidArgument("cannot set schema in MySQL: schemas are not supported")
+		return c.ErrorHelper.InvalidArgument("cannot set schema in SingleStore: schemas are not supported")
 	}
 	return nil
 }
 
-func (c *mysqlConnectionImpl) PrepareDriverInfo(ctx context.Context, infoCodes []adbc.InfoCode) error {
+func (c *singlestoreConnectionImpl) PrepareDriverInfo(ctx context.Context, infoCodes []adbc.InfoCode) error {
 	if c.version == "" {
 		var version, comment string
 		if err := c.Conn.QueryRowContext(ctx, "SELECT @@version, @@version_comment").Scan(&version, &comment); err != nil {
@@ -71,9 +71,9 @@ func (c *mysqlConnectionImpl) PrepareDriverInfo(ctx context.Context, infoCodes [
 	return c.DriverInfo.RegisterInfoCode(adbc.InfoVendorVersion, c.version)
 }
 
-// GetTableSchema returns the Arrow schema for a MySQL table
-func (c *mysqlConnectionImpl) GetTableSchema(ctx context.Context, catalog *string, dbSchema *string, tableName string) (schema *arrow.Schema, err error) {
-	// Struct to capture MySQL column information
+// GetTableSchema returns the Arrow schema for a SingleStore table
+func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog *string, dbSchema *string, tableName string) (schema *arrow.Schema, err error) {
+	// Struct to capture SingleStore column information
 	type tableColumn struct {
 		OrdinalPosition        int32
 		ColumnName             string
@@ -185,8 +185,8 @@ func (c *mysqlConnectionImpl) GetTableSchema(ctx context.Context, catalog *strin
 }
 
 // ListTableTypes implements driverbase.TableTypeLister interface
-func (c *mysqlConnectionImpl) ListTableTypes(ctx context.Context) ([]string, error) {
-	// MySQL supports these standard table types
+func (c *singlestoreConnectionImpl) ListTableTypes(ctx context.Context) ([]string, error) {
+	// SingleStore supports these standard table types
 	return []string{
 		"BASE TABLE",  // Regular tables
 		"VIEW",        // Views
@@ -194,8 +194,8 @@ func (c *mysqlConnectionImpl) ListTableTypes(ctx context.Context) ([]string, err
 	}, nil
 }
 
-// ExecuteBulkIngest performs MySQL bulk ingest using INSERT statements
-func (c *mysqlConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn *sqlwrapper.LoggingConn, options *driverbase.BulkIngestOptions, stream array.RecordReader) (rowCount int64, err error) {
+// ExecuteBulkIngest performs SingleStore bulk ingest using INSERT statements
+func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn *sqlwrapper.LoggingConn, options *driverbase.BulkIngestOptions, stream array.RecordReader) (rowCount int64, err error) {
 	if stream == nil {
 		return -1, c.ErrorHelper.InvalidArgument("stream cannot be nil")
 	}
@@ -268,7 +268,7 @@ func (c *mysqlConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn *sqlwr
 }
 
 // createTableIfNeeded creates the table based on the ingest mode
-func (c *mysqlConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, options *driverbase.BulkIngestOptions) error {
+func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, options *driverbase.BulkIngestOptions) error {
 	switch options.Mode {
 	case adbc.OptionValueIngestModeCreate:
 		// Create the table (fail if exists)
@@ -290,8 +290,8 @@ func (c *mysqlConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sql
 	}
 }
 
-// createTable creates a MySQL table from Arrow schema
-func (c *mysqlConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, ifNotExists bool) error {
+// createTable creates a SingleStore table from Arrow schema
+func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, ifNotExists bool) error {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("CREATE TABLE ")
 	if ifNotExists {
@@ -308,9 +308,9 @@ func (c *mysqlConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.
 		queryBuilder.WriteString(quoteIdentifier(field.Name))
 		queryBuilder.WriteString(" ")
 
-		// Convert Arrow type to MySQL type
-		mysqlType := c.arrowToMySQLType(field.Type, field.Nullable)
-		queryBuilder.WriteString(mysqlType)
+		// Convert Arrow type to SingleStore type
+		singlestoreType := c.arrowToSingleStoreType(field.Type, field.Nullable)
+		queryBuilder.WriteString(singlestoreType)
 	}
 
 	queryBuilder.WriteString(")")
@@ -319,40 +319,40 @@ func (c *mysqlConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.
 	return err
 }
 
-// dropTable drops a MySQL table
-func (c *mysqlConnectionImpl) dropTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string) error {
+// dropTable drops a SingleStore table
+func (c *singlestoreConnectionImpl) dropTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string) error {
 	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", quoteIdentifier(tableName))
 	_, err := conn.ExecContext(ctx, dropSQL)
 	return err
 }
 
-// arrowToMySQLType converts Arrow data type to MySQL column type
-func (c *mysqlConnectionImpl) arrowToMySQLType(arrowType arrow.DataType, nullable bool) string {
-	var mysqlType string
+// arrowToSingleStoreType converts Arrow data type to SingleStore column type
+func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataType, nullable bool) string {
+	var singlestoreType string
 
 	switch arrowType := arrowType.(type) {
 	case *arrow.BooleanType:
-		mysqlType = "BOOLEAN"
+		singlestoreType = "BOOLEAN"
 	case *arrow.Int8Type:
-		mysqlType = "TINYINT"
+		singlestoreType = "TINYINT"
 	case *arrow.Int16Type:
-		mysqlType = "SMALLINT"
+		singlestoreType = "SMALLINT"
 	case *arrow.Int32Type:
-		mysqlType = "INT"
+		singlestoreType = "INT"
 	case *arrow.Int64Type:
-		mysqlType = "BIGINT"
+		singlestoreType = "BIGINT"
 	case *arrow.Float32Type:
-		mysqlType = "FLOAT"
+		singlestoreType = "FLOAT"
 	case *arrow.Float64Type:
-		mysqlType = "DOUBLE"
+		singlestoreType = "DOUBLE"
 	case *arrow.StringType:
-		mysqlType = "TEXT"
+		singlestoreType = "TEXT"
 	case *arrow.BinaryType, *arrow.FixedSizeBinaryType, *arrow.BinaryViewType:
-		mysqlType = "BLOB"
+		singlestoreType = "BLOB"
 	case *arrow.LargeBinaryType:
-		mysqlType = "LONGBLOB"
+		singlestoreType = "LONGBLOB"
 	case *arrow.Date32Type:
-		mysqlType = "DATE"
+		singlestoreType = "DATE"
 	case *arrow.TimestampType:
 
 		// Determine precision based on Arrow timestamp unit
@@ -365,7 +365,7 @@ func (c *mysqlConnectionImpl) arrowToMySQLType(arrowType arrow.DataType, nullabl
 		case arrow.Microsecond:
 			precision = "(6)"
 		case arrow.Nanosecond:
-			precision = "(6)" // MySQL max is 6 digits
+			precision = "(6)" // SingleStore max is 6 digits
 		default:
 			// should never happen, but panic here for defensive programming
 			panic(fmt.Sprintf("unexpected Arrow timestamp unit: %v", arrowType.Unit))
@@ -374,18 +374,18 @@ func (c *mysqlConnectionImpl) arrowToMySQLType(arrowType arrow.DataType, nullabl
 		// Use DATETIME for timezone-naive timestamps, TIMESTAMP for timezone-aware
 		if arrowType.TimeZone != "" {
 			// Timezone-aware (timestamptz) -> TIMESTAMP
-			mysqlType = "TIMESTAMP" + precision
+			singlestoreType = "TIMESTAMP" + precision
 		} else {
 			// Timezone-naive (timestamp) -> DATETIME
-			mysqlType = "DATETIME" + precision
+			singlestoreType = "DATETIME" + precision
 		}
 	case *arrow.Time32Type:
 		// Determine precision based on Arrow time unit
 		switch arrowType.Unit {
 		case arrow.Second:
-			mysqlType = "TIME"
+			singlestoreType = "TIME"
 		case arrow.Millisecond:
-			mysqlType = "TIME(3)"
+			singlestoreType = "TIME(3)"
 		default:
 			// should never happen, but panic here for defensive programming
 			panic(fmt.Sprintf("unexpected Time32 unit: %v", arrowType.Unit))
@@ -395,27 +395,27 @@ func (c *mysqlConnectionImpl) arrowToMySQLType(arrowType arrow.DataType, nullabl
 		// Determine precision based on Arrow time unit
 		switch arrowType.Unit {
 		case arrow.Microsecond:
-			mysqlType = "TIME(6)"
+			singlestoreType = "TIME(6)"
 		case arrow.Nanosecond:
-			mysqlType = "TIME(6)" // MySQL max is 6 digits
+			singlestoreType = "TIME(6)" // SingleStore max is 6 digits
 		default:
 			// should never happen, but panic here for defensive programming
 			panic(fmt.Sprintf("unexpected Time64 unit: %v", arrowType.Unit))
 		}
 	case arrow.DecimalType:
-		mysqlType = fmt.Sprintf("DECIMAL(%d,%d)", arrowType.GetPrecision(), arrowType.GetScale())
+		singlestoreType = fmt.Sprintf("DECIMAL(%d,%d)", arrowType.GetPrecision(), arrowType.GetScale())
 	default:
 		// Default to TEXT for unknown types
-		mysqlType = "TEXT"
+		singlestoreType = "TEXT"
 	}
 
 	if nullable {
-		mysqlType += " NULL"
+		singlestoreType += " NULL"
 	} else {
-		mysqlType += " NOT NULL"
+		singlestoreType += " NOT NULL"
 	}
 
-	return mysqlType
+	return singlestoreType
 }
 
 func quoteIdentifier(name string) string {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package singlestore
 
 import (
 	"errors"
@@ -21,16 +21,16 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-type MySQLErrorInspector struct{}
+type SingleStoreErrorInspector struct{}
 
-// InspectError examines a MySQL error and formats it as an ADBC error
+// InspectError examines a SingleStore error and formats it as an ADBC error
 // mysql error codes: https://www.fromdual.com/mysql-error-codes-and-messages
-func (m MySQLErrorInspector) InspectError(err error, defaultStatus adbc.Status) adbc.Error {
+func (m SingleStoreErrorInspector) InspectError(err error, defaultStatus adbc.Status) adbc.Error {
 	status := defaultStatus
 
-	var mysqlErr *mysql.MySQLError
-	if errors.As(err, &mysqlErr) {
-		switch mysqlErr.Number {
+	var singlestoreErr *mysql.MySQLError
+	if errors.As(err, &singlestoreErr) {
+		switch singlestoreErr.Number {
 		case 1045: // ER_ACCESS_DENIED_ERROR
 			status = adbc.StatusUnauthenticated
 		case 1044, 1142, 1143, 1227: // Permission errors
@@ -76,8 +76,8 @@ func (m MySQLErrorInspector) InspectError(err error, defaultStatus adbc.Status) 
 		}
 
 		// If status still not determined, use SQLSTATE prefix as fallback.
-		if mysqlErr.SQLState[0] != 0 && status == defaultStatus {
-			switch string(mysqlErr.SQLState[:2]) {
+		if singlestoreErr.SQLState[0] != 0 && status == defaultStatus {
+			switch string(singlestoreErr.SQLState[:2]) {
 			case "02": // No data
 				status = adbc.StatusNotFound
 			case "07": // Dynamic SQL/Connection errors

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package singlestore
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"github.com/adbc-drivers/driverbase-go/driverbase"
 )
 
-func (c *mysqlConnectionImpl) GetCatalogs(ctx context.Context, catalogFilter *string) (catalogs []string, err error) {
-	// In MySQL JDBC, getCatalogs() returns database names (catalogs are databases)
+func (c *singlestoreConnectionImpl) GetCatalogs(ctx context.Context, catalogFilter *string) (catalogs []string, err error) {
+	// In SingleStore JDBC, getCatalogs() returns database names (catalogs are databases)
 	// Build query using strings.Builder
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA")
@@ -62,8 +62,8 @@ func (c *mysqlConnectionImpl) GetCatalogs(ctx context.Context, catalogFilter *st
 	return catalogs, err
 }
 
-func (c *mysqlConnectionImpl) GetDBSchemasForCatalog(ctx context.Context, catalog string, schemaFilter *string) (schemas []string, err error) {
-	// In MySQL JDBC, getSchemas() returns empty - schemas are not supported
+func (c *singlestoreConnectionImpl) GetDBSchemasForCatalog(ctx context.Context, catalog string, schemaFilter *string) (schemas []string, err error) {
+	// In SingleStore JDBC, getSchemas() returns empty - schemas are not supported
 	// For ADBC GetObjects, we return empty string as schema to maintain the hierarchy
 	// This allows: catalog (db name) -> schema ("") -> tables
 
@@ -82,7 +82,7 @@ func (c *mysqlConnectionImpl) GetDBSchemasForCatalog(ctx context.Context, catalo
 	return []string{""}, nil
 }
 
-func (c *mysqlConnectionImpl) GetTablesForDBSchema(ctx context.Context, catalog string, schema string, tableFilter *string, columnFilter *string, includeColumns bool) (tables []driverbase.TableInfo, err error) {
+func (c *singlestoreConnectionImpl) GetTablesForDBSchema(ctx context.Context, catalog string, schema string, tableFilter *string, columnFilter *string, includeColumns bool) (tables []driverbase.TableInfo, err error) {
 	if includeColumns {
 		return c.getTablesWithColumns(ctx, catalog, schema, tableFilter, columnFilter)
 	}
@@ -90,8 +90,8 @@ func (c *mysqlConnectionImpl) GetTablesForDBSchema(ctx context.Context, catalog 
 }
 
 // getTablesOnly retrieves table information without columns
-func (c *mysqlConnectionImpl) getTablesOnly(ctx context.Context, catalog string, schema string, tableFilter *string) (tables []driverbase.TableInfo, err error) {
-	// In MySQL JDBC, catalog is the database name and schema should be empty
+func (c *singlestoreConnectionImpl) getTablesOnly(ctx context.Context, catalog string, schema string, tableFilter *string) (tables []driverbase.TableInfo, err error) {
+	// In SingleStore JDBC, catalog is the database name and schema should be empty
 	if schema != "" {
 		return []driverbase.TableInfo{}, nil // No tables for non-empty schemas
 	}
@@ -143,8 +143,8 @@ func (c *mysqlConnectionImpl) getTablesOnly(ctx context.Context, catalog string,
 }
 
 // getTablesWithColumns retrieves complete table and column information
-func (c *mysqlConnectionImpl) getTablesWithColumns(ctx context.Context, catalog string, schema string, tableFilter *string, columnFilter *string) (tables []driverbase.TableInfo, err error) {
-	// In MySQL JDBC, catalog is the database name and schema should be empty
+func (c *singlestoreConnectionImpl) getTablesWithColumns(ctx context.Context, catalog string, schema string, tableFilter *string, columnFilter *string) (tables []driverbase.TableInfo, err error) {
+	// In SingleStore JDBC, catalog is the database name and schema should be empty
 	if schema != "" {
 		return []driverbase.TableInfo{}, nil // No tables for non-empty schemas
 	}
@@ -226,7 +226,7 @@ func (c *mysqlConnectionImpl) getTablesWithColumns(ctx context.Context, catalog 
 		var radix sql.NullInt16
 		var nullable sql.NullInt16
 
-		// Set numeric precision radix (MySQL doesn't store this directly)
+		// Set numeric precision radix (SingleStore doesn't store this directly)
 		dataType := strings.ToUpper(tc.DataType)
 		switch dataType {
 		// Binary radix (base 2)
