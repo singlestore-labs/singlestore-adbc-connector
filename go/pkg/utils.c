@@ -29,20 +29,20 @@
 extern "C" {
 #endif
 
-void MySQL_release_error(struct AdbcError* error) {
+void SingleStore_release_error(struct AdbcError* error) {
   free(error->message);
   error->message = NULL;
   error->release = NULL;
 }
 
-void MySQLReleaseErrWithDetails(struct AdbcError* error) {
-  if (!error || error->release != MySQLReleaseErrWithDetails ||
+void SingleStoreReleaseErrWithDetails(struct AdbcError* error) {
+  if (!error || error->release != SingleStoreReleaseErrWithDetails ||
       !error->private_data) {
     return;
   }
 
-  struct MySQLError* details =
-      (struct MySQLError*) error->private_data;
+  struct SingleStoreError* details =
+      (struct SingleStoreError*) error->private_data;
   for (int i = 0; i < details->count; i++) {
     free(details->keys[i]);
     free(details->values[i]);
@@ -58,22 +58,22 @@ void MySQLReleaseErrWithDetails(struct AdbcError* error) {
   error->private_data = NULL;
 }
 
-int MySQLErrorGetDetailCount(const struct AdbcError* error) {
-  if (!error || error->release != MySQLReleaseErrWithDetails ||
+int SingleStoreErrorGetDetailCount(const struct AdbcError* error) {
+  if (!error || error->release != SingleStoreReleaseErrWithDetails ||
       !error->private_data) {
     return 0;
   }
 
-  return ((struct MySQLError*) error->private_data)->count;
+  return ((struct SingleStoreError*) error->private_data)->count;
 }
 
-struct AdbcErrorDetail MySQLErrorGetDetail(const struct AdbcError* error,
+struct AdbcErrorDetail SingleStoreErrorGetDetail(const struct AdbcError* error,
                                                  int index) {
-  if (!error || error->release != MySQLReleaseErrWithDetails ||
+  if (!error || error->release != SingleStoreReleaseErrWithDetails ||
       !error->private_data) {
     return (struct AdbcErrorDetail){NULL, NULL, 0};
   }
-  struct MySQLError* details = (struct MySQLError*) error->private_data;
+  struct SingleStoreError* details = (struct SingleStoreError*) error->private_data;
   if (index < 0 || index >= details->count) {
     return (struct AdbcErrorDetail){NULL, NULL, 0};
   }
@@ -87,82 +87,82 @@ struct AdbcErrorDetail MySQLErrorGetDetail(const struct AdbcError* error,
 
 #if !defined(ADBC_NO_COMMON_ENTRYPOINTS)
 int AdbcErrorGetDetailCount(const struct AdbcError* error) {
-  return MySQLErrorGetDetailCount(error);
+  return SingleStoreErrorGetDetailCount(error);
 }
 
 struct AdbcErrorDetail AdbcErrorGetDetail(const struct AdbcError* error, int index) {
-  return MySQLErrorGetDetail(error, index);
+  return SingleStoreErrorGetDetail(error, index);
 }
 
 const struct AdbcError* AdbcErrorFromArrayStream(struct ArrowArrayStream* stream,
                                                  AdbcStatusCode* status) {
-  return MySQLErrorFromArrayStream(stream, status);
+  return SingleStoreErrorFromArrayStream(stream, status);
 }
 
 AdbcStatusCode AdbcDatabaseGetOption(struct AdbcDatabase* database, const char* key,
                                      char* value, size_t* length,
                                      struct AdbcError* error) {
-  return MySQLDatabaseGetOption(database, key, value, length, error);
+  return SingleStoreDatabaseGetOption(database, key, value, length, error);
 }
 
 AdbcStatusCode AdbcDatabaseGetOptionBytes(struct AdbcDatabase* database, const char* key,
                                           uint8_t* value, size_t* length,
                                           struct AdbcError* error) {
-  return MySQLDatabaseGetOptionBytes(database, key, value, length, error);
+  return SingleStoreDatabaseGetOptionBytes(database, key, value, length, error);
 }
 
 AdbcStatusCode AdbcDatabaseGetOptionDouble(struct AdbcDatabase* database, const char* key,
                                            double* value, struct AdbcError* error) {
-  return MySQLDatabaseGetOptionDouble(database, key, value, error);
+  return SingleStoreDatabaseGetOptionDouble(database, key, value, error);
 }
 
 AdbcStatusCode AdbcDatabaseGetOptionInt(struct AdbcDatabase* database, const char* key,
                                         int64_t* value, struct AdbcError* error) {
-  return MySQLDatabaseGetOptionInt(database, key, value, error);
+  return SingleStoreDatabaseGetOptionInt(database, key, value, error);
 }
 
 AdbcStatusCode AdbcDatabaseInit(struct AdbcDatabase* database, struct AdbcError* error) {
-  return MySQLDatabaseInit(database, error);
+  return SingleStoreDatabaseInit(database, error);
 }
 
 AdbcStatusCode AdbcDatabaseNew(struct AdbcDatabase* database, struct AdbcError* error) {
-  return MySQLDatabaseNew(database, error);
+  return SingleStoreDatabaseNew(database, error);
 }
 
 AdbcStatusCode AdbcDatabaseRelease(struct AdbcDatabase* database,
                                    struct AdbcError* error) {
-  return MySQLDatabaseRelease(database, error);
+  return SingleStoreDatabaseRelease(database, error);
 }
 
 AdbcStatusCode AdbcDatabaseSetOption(struct AdbcDatabase* database, const char* key,
                                      const char* value, struct AdbcError* error) {
-  return MySQLDatabaseSetOption(database, key, value, error);
+  return SingleStoreDatabaseSetOption(database, key, value, error);
 }
 
 AdbcStatusCode AdbcDatabaseSetOptionBytes(struct AdbcDatabase* database, const char* key,
                                           const uint8_t* value, size_t length,
                                           struct AdbcError* error) {
-  return MySQLDatabaseSetOptionBytes(database, key, value, length, error);
+  return SingleStoreDatabaseSetOptionBytes(database, key, value, length, error);
 }
 
 AdbcStatusCode AdbcDatabaseSetOptionDouble(struct AdbcDatabase* database, const char* key,
                                            double value, struct AdbcError* error) {
-  return MySQLDatabaseSetOptionDouble(database, key, value, error);
+  return SingleStoreDatabaseSetOptionDouble(database, key, value, error);
 }
 
 AdbcStatusCode AdbcDatabaseSetOptionInt(struct AdbcDatabase* database, const char* key,
                                         int64_t value, struct AdbcError* error) {
-  return MySQLDatabaseSetOptionInt(database, key, value, error);
+  return SingleStoreDatabaseSetOptionInt(database, key, value, error);
 }
 
 AdbcStatusCode AdbcConnectionCancel(struct AdbcConnection* connection,
                                     struct AdbcError* error) {
-  return MySQLConnectionCancel(connection, error);
+  return SingleStoreConnectionCancel(connection, error);
 }
 
 AdbcStatusCode AdbcConnectionCommit(struct AdbcConnection* connection,
                                     struct AdbcError* error) {
-  return MySQLConnectionCommit(connection, error);
+  return SingleStoreConnectionCommit(connection, error);
 }
 
 AdbcStatusCode AdbcConnectionGetInfo(struct AdbcConnection* connection,
@@ -170,7 +170,7 @@ AdbcStatusCode AdbcConnectionGetInfo(struct AdbcConnection* connection,
                                      struct ArrowArrayStream* out,
                                      struct AdbcError* error) {
   if (out) memset(out, 0, sizeof(*out));
-  return MySQLConnectionGetInfo(connection, info_codes, info_codes_length,
+  return SingleStoreConnectionGetInfo(connection, info_codes, info_codes_length,
                                       out, error);
 }
 
@@ -181,32 +181,32 @@ AdbcStatusCode AdbcConnectionGetObjects(struct AdbcConnection* connection, int d
                                         struct ArrowArrayStream* out,
                                         struct AdbcError* error) {
   if (out) memset(out, 0, sizeof(*out));
-  return MySQLConnectionGetObjects(connection, depth, catalog, db_schema, table_name,
+  return SingleStoreConnectionGetObjects(connection, depth, catalog, db_schema, table_name,
                                          table_type, column_name, out, error);
 }
 
 AdbcStatusCode AdbcConnectionGetOption(struct AdbcConnection* connection, const char* key,
                                        char* value, size_t* length,
                                        struct AdbcError* error) {
-  return MySQLConnectionGetOption(connection, key, value, length, error);
+  return SingleStoreConnectionGetOption(connection, key, value, length, error);
 }
 
 AdbcStatusCode AdbcConnectionGetOptionBytes(struct AdbcConnection* connection,
                                             const char* key, uint8_t* value,
                                             size_t* length, struct AdbcError* error) {
-  return MySQLConnectionGetOptionBytes(connection, key, value, length, error);
+  return SingleStoreConnectionGetOptionBytes(connection, key, value, length, error);
 }
 
 AdbcStatusCode AdbcConnectionGetOptionDouble(struct AdbcConnection* connection,
                                              const char* key, double* value,
                                              struct AdbcError* error) {
-  return MySQLConnectionGetOptionDouble(connection, key, value, error);
+  return SingleStoreConnectionGetOptionDouble(connection, key, value, error);
 }
 
 AdbcStatusCode AdbcConnectionGetOptionInt(struct AdbcConnection* connection,
                                           const char* key, int64_t* value,
                                           struct AdbcError* error) {
-  return MySQLConnectionGetOptionInt(connection, key, value, error);
+  return SingleStoreConnectionGetOptionInt(connection, key, value, error);
 }
 
 AdbcStatusCode AdbcConnectionGetStatistics(struct AdbcConnection* connection,
@@ -214,14 +214,14 @@ AdbcStatusCode AdbcConnectionGetStatistics(struct AdbcConnection* connection,
                                            const char* table_name, char approximate,
                                            struct ArrowArrayStream* out,
                                            struct AdbcError* error) {
-  return MySQLConnectionGetStatistics(connection, catalog, db_schema, table_name,
+  return SingleStoreConnectionGetStatistics(connection, catalog, db_schema, table_name,
                                             approximate, out, error);
 }
 
 AdbcStatusCode AdbcConnectionGetStatisticNames(struct AdbcConnection* connection,
                                                struct ArrowArrayStream* out,
                                                struct AdbcError* error) {
-  return MySQLConnectionGetStatisticNames(connection, out, error);
+  return SingleStoreConnectionGetStatisticNames(connection, out, error);
 }
 
 AdbcStatusCode AdbcConnectionGetTableSchema(struct AdbcConnection* connection,
@@ -230,7 +230,7 @@ AdbcStatusCode AdbcConnectionGetTableSchema(struct AdbcConnection* connection,
                                             struct ArrowSchema* schema,
                                             struct AdbcError* error) {
   if (schema) memset(schema, 0, sizeof(*schema));
-  return MySQLConnectionGetTableSchema(connection, catalog, db_schema, table_name,
+  return SingleStoreConnectionGetTableSchema(connection, catalog, db_schema, table_name,
                                         schema, error);
 }
 
@@ -238,18 +238,18 @@ AdbcStatusCode AdbcConnectionGetTableTypes(struct AdbcConnection* connection,
                                            struct ArrowArrayStream* out,
                                            struct AdbcError* error) {
   if (out) memset(out, 0, sizeof(*out));
-  return MySQLConnectionGetTableTypes(connection, out, error);
+  return SingleStoreConnectionGetTableTypes(connection, out, error);
 }
 
 AdbcStatusCode AdbcConnectionInit(struct AdbcConnection* connection,
                                   struct AdbcDatabase* database,
                                   struct AdbcError* error) {
-  return MySQLConnectionInit(connection, database, error);
+  return SingleStoreConnectionInit(connection, database, error);
 }
 
 AdbcStatusCode AdbcConnectionNew(struct AdbcConnection* connection,
                                  struct AdbcError* error) {
-  return MySQLConnectionNew(connection, error);
+  return SingleStoreConnectionNew(connection, error);
 }
 
 AdbcStatusCode AdbcConnectionReadPartition(struct AdbcConnection* connection,
@@ -258,58 +258,58 @@ AdbcStatusCode AdbcConnectionReadPartition(struct AdbcConnection* connection,
                                            struct ArrowArrayStream* out,
                                            struct AdbcError* error) {
   if (out) memset(out, 0, sizeof(*out));
-  return MySQLConnectionReadPartition(connection, serialized_partition,
+  return SingleStoreConnectionReadPartition(connection, serialized_partition,
                                        serialized_length, out, error);
 }
 
 AdbcStatusCode AdbcConnectionRelease(struct AdbcConnection* connection,
                                      struct AdbcError* error) {
-  return MySQLConnectionRelease(connection, error);
+  return SingleStoreConnectionRelease(connection, error);
 }
 
 AdbcStatusCode AdbcConnectionRollback(struct AdbcConnection* connection,
                                       struct AdbcError* error) {
-  return MySQLConnectionRollback(connection, error);
+  return SingleStoreConnectionRollback(connection, error);
 }
 
 AdbcStatusCode AdbcConnectionSetOption(struct AdbcConnection* connection, const char* key,
                                        const char* value, struct AdbcError* error) {
-  return MySQLConnectionSetOption(connection, key, value, error);
+  return SingleStoreConnectionSetOption(connection, key, value, error);
 }
 
 AdbcStatusCode AdbcConnectionSetOptionBytes(struct AdbcConnection* connection,
                                             const char* key, const uint8_t* value,
                                             size_t length, struct AdbcError* error) {
-  return MySQLConnectionSetOptionBytes(connection, key, value, length, error);
+  return SingleStoreConnectionSetOptionBytes(connection, key, value, length, error);
 }
 
 AdbcStatusCode AdbcConnectionSetOptionDouble(struct AdbcConnection* connection,
                                              const char* key, double value,
                                              struct AdbcError* error) {
-  return MySQLConnectionSetOptionDouble(connection, key, value, error);
+  return SingleStoreConnectionSetOptionDouble(connection, key, value, error);
 }
 
 AdbcStatusCode AdbcConnectionSetOptionInt(struct AdbcConnection* connection,
                                           const char* key, int64_t value,
                                           struct AdbcError* error) {
-  return MySQLConnectionSetOptionInt(connection, key, value, error);
+  return SingleStoreConnectionSetOptionInt(connection, key, value, error);
 }
 
 AdbcStatusCode AdbcStatementCancel(struct AdbcStatement* statement,
                                    struct AdbcError* error) {
-  return MySQLStatementCancel(statement, error);
+  return SingleStoreStatementCancel(statement, error);
 }
 
 AdbcStatusCode AdbcStatementBind(struct AdbcStatement* statement,
                                  struct ArrowArray* values, struct ArrowSchema* schema,
                                  struct AdbcError* error) {
-  return MySQLStatementBind(statement, values, schema, error);
+  return SingleStoreStatementBind(statement, values, schema, error);
 }
 
 AdbcStatusCode AdbcStatementBindStream(struct AdbcStatement* statement,
                                        struct ArrowArrayStream* stream,
                                        struct AdbcError* error) {
-  return MySQLStatementBindStream(statement, stream, error);
+  return SingleStoreStatementBindStream(statement, stream, error);
 }
 
 AdbcStatusCode AdbcStatementExecutePartitions(struct AdbcStatement* statement,
@@ -317,11 +317,11 @@ AdbcStatusCode AdbcStatementExecutePartitions(struct AdbcStatement* statement,
                                               struct AdbcPartitions* partitions,
                                               int64_t* rows_affected,
                                               struct AdbcError* error) {
-  return MySQLStatementExecutePartitionsTrampoline(
+  return SingleStoreStatementExecutePartitionsTrampoline(
     statement, schema, partitions, rows_affected, error);
 }
 
-AdbcStatusCode MySQLStatementExecutePartitionsTrampoline(
+AdbcStatusCode SingleStoreStatementExecutePartitionsTrampoline(
     struct AdbcStatement* statement,
     struct ArrowSchema* schema,
     struct AdbcPartitions* partitions,
@@ -329,7 +329,7 @@ AdbcStatusCode MySQLStatementExecutePartitionsTrampoline(
     struct AdbcError* error) {
   if (schema) memset(schema, 0, sizeof(*schema));
   if (partitions) memset(partitions, 0, sizeof(*partitions));
-  return MySQLStatementExecutePartitions(statement, schema, partitions,
+  return SingleStoreStatementExecutePartitions(statement, schema, partitions,
                                                rows_affected, error);
 }
 
@@ -338,118 +338,118 @@ AdbcStatusCode AdbcStatementExecuteQuery(struct AdbcStatement* statement,
                                          int64_t* rows_affected,
                                          struct AdbcError* error) {
   if (out) memset(out, 0, sizeof(*out));
-  return MySQLStatementExecuteQuery(statement, out, rows_affected, error);
+  return SingleStoreStatementExecuteQuery(statement, out, rows_affected, error);
 }
 
 AdbcStatusCode AdbcStatementExecuteSchema(struct AdbcStatement* statement,
                                           struct ArrowSchema* schema,
                                           struct AdbcError* error) {
   if (schema) memset(schema, 0, sizeof(*schema));
-  return MySQLStatementExecuteSchema(statement, schema, error);
+  return SingleStoreStatementExecuteSchema(statement, schema, error);
 }
 
 AdbcStatusCode AdbcStatementGetOption(struct AdbcStatement* statement, const char* key,
                                       char* value, size_t* length,
                                       struct AdbcError* error) {
-  return MySQLStatementGetOption(statement, key, value, length, error);
+  return SingleStoreStatementGetOption(statement, key, value, length, error);
 }
 
 AdbcStatusCode AdbcStatementGetOptionBytes(struct AdbcStatement* statement,
                                            const char* key, uint8_t* value,
                                            size_t* length, struct AdbcError* error) {
-  return MySQLStatementGetOptionBytes(statement, key, value, length, error);
+  return SingleStoreStatementGetOptionBytes(statement, key, value, length, error);
 }
 
 AdbcStatusCode AdbcStatementGetOptionDouble(struct AdbcStatement* statement,
                                             const char* key, double* value,
                                             struct AdbcError* error) {
-  return MySQLStatementGetOptionDouble(statement, key, value, error);
+  return SingleStoreStatementGetOptionDouble(statement, key, value, error);
 }
 
 AdbcStatusCode AdbcStatementGetOptionInt(struct AdbcStatement* statement,
                                          const char* key, int64_t* value,
                                          struct AdbcError* error) {
-  return MySQLStatementGetOptionInt(statement, key, value, error);
+  return SingleStoreStatementGetOptionInt(statement, key, value, error);
 }
 
 AdbcStatusCode AdbcStatementGetParameterSchema(struct AdbcStatement* statement,
                                                struct ArrowSchema* schema,
                                                struct AdbcError* error) {
   if (schema) memset(schema, 0, sizeof(*schema));
-  return MySQLStatementGetParameterSchema(statement, schema, error);
+  return SingleStoreStatementGetParameterSchema(statement, schema, error);
 }
 
 AdbcStatusCode AdbcStatementNew(struct AdbcConnection* connection,
                                 struct AdbcStatement* statement,
                                 struct AdbcError* error) {
-  return MySQLStatementNew(connection, statement, error);
+  return SingleStoreStatementNew(connection, statement, error);
 }
 
 AdbcStatusCode AdbcStatementPrepare(struct AdbcStatement* statement,
                                     struct AdbcError* error) {
-  return MySQLStatementPrepare(statement, error);
+  return SingleStoreStatementPrepare(statement, error);
 }
 
 AdbcStatusCode AdbcStatementRelease(struct AdbcStatement* statement,
                                     struct AdbcError* error) {
-  return MySQLStatementRelease(statement, error);
+  return SingleStoreStatementRelease(statement, error);
 }
 
 AdbcStatusCode AdbcStatementSetSqlQuery(struct AdbcStatement* statement,
                                         const char* query, struct AdbcError* error) {
-  return MySQLStatementSetSqlQuery(statement, query, error);
+  return SingleStoreStatementSetSqlQuery(statement, query, error);
 }
 
 AdbcStatusCode AdbcStatementSetSubstraitPlan(struct AdbcStatement* statement,
                                              const uint8_t* plan, size_t length,
                                              struct AdbcError* error) {
-  return MySQLStatementSetSubstraitPlan(statement, plan, length, error);
+  return SingleStoreStatementSetSubstraitPlan(statement, plan, length, error);
 }
 
 AdbcStatusCode AdbcStatementSetOption(struct AdbcStatement* statement, const char* key,
                                       const char* value, struct AdbcError* error) {
-  return MySQLStatementSetOption(statement, key, value, error);
+  return SingleStoreStatementSetOption(statement, key, value, error);
 }
 
 AdbcStatusCode AdbcStatementSetOptionBytes(struct AdbcStatement* statement,
                                            const char* key, const uint8_t* value,
                                            size_t length, struct AdbcError* error) {
-  return MySQLStatementSetOptionBytes(statement, key, value, length, error);
+  return SingleStoreStatementSetOptionBytes(statement, key, value, length, error);
 }
 
 AdbcStatusCode AdbcStatementSetOptionDouble(struct AdbcStatement* statement,
                                             const char* key, double value,
                                             struct AdbcError* error) {
-  return MySQLStatementSetOptionDouble(statement, key, value, error);
+  return SingleStoreStatementSetOptionDouble(statement, key, value, error);
 }
 
 AdbcStatusCode AdbcStatementSetOptionInt(struct AdbcStatement* statement,
                                          const char* key, int64_t value,
                                          struct AdbcError* error) {
-  return MySQLStatementSetOptionInt(statement, key, value, error);
+  return SingleStoreStatementSetOptionInt(statement, key, value, error);
 }
 
 ADBC_EXPORT
 AdbcStatusCode AdbcDriverInit(int version, void* driver, struct AdbcError* error) {
-  return AdbcDriverMySQLInit(version, driver, error);
+  return AdbcDriverSingleStoreInit(version, driver, error);
 }
 #endif  // ADBC_NO_COMMON_ENTRYPOINTS
 
-int MySQLArrayStreamGetSchema(struct ArrowArrayStream*, struct ArrowSchema*);
-int MySQLArrayStreamGetNext(struct ArrowArrayStream*, struct ArrowArray*);
+int SingleStoreArrayStreamGetSchema(struct ArrowArrayStream*, struct ArrowSchema*);
+int SingleStoreArrayStreamGetNext(struct ArrowArrayStream*, struct ArrowArray*);
 
-int MySQLArrayStreamGetSchemaTrampoline(struct ArrowArrayStream* stream,
+int SingleStoreArrayStreamGetSchemaTrampoline(struct ArrowArrayStream* stream,
                                               struct ArrowSchema* out) {
   // XXX(https://github.com/apache/arrow-adbc/issues/729)
   memset(out, 0, sizeof(*out));
-  return MySQLArrayStreamGetSchema(stream, out);
+  return SingleStoreArrayStreamGetSchema(stream, out);
 }
 
-int MySQLArrayStreamGetNextTrampoline(struct ArrowArrayStream* stream,
+int SingleStoreArrayStreamGetNextTrampoline(struct ArrowArrayStream* stream,
                                             struct ArrowArray* out) {
   // XXX(https://github.com/apache/arrow-adbc/issues/729)
   memset(out, 0, sizeof(*out));
-  return MySQLArrayStreamGetNext(stream, out);
+  return SingleStoreArrayStreamGetNext(stream, out);
 }
 
 #ifdef __cplusplus
