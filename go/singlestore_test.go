@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql_test
+package singlestore_test
 
 import (
 	"bytes"
@@ -34,33 +34,33 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	mysql "github.com/adbc-drivers/mysql"
+	singlestore "github.com/singlestore-labs/singlestore-adbc-connector"
 )
 
-// MySQLQuirks implements validation.DriverQuirks for MySQL ADBC driver
-type MySQLQuirks struct {
+// SingleStoreQuirks implements validation.DriverQuirks for SingleStore ADBC driver
+type SingleStoreQuirks struct {
 	dsn string
 	mem *memory.CheckedAllocator
 }
 
-func (q *MySQLQuirks) SetupDriver(t *testing.T) adbc.Driver {
+func (q *SingleStoreQuirks) SetupDriver(t *testing.T) adbc.Driver {
 	q.mem = memory.NewCheckedAllocator(memory.DefaultAllocator)
-	return mysql.NewDriver(q.mem)
+	return singlestore.NewDriver(q.mem)
 }
 
-func (q *MySQLQuirks) TearDownDriver(t *testing.T, _ adbc.Driver) {
+func (q *SingleStoreQuirks) TearDownDriver(t *testing.T, _ adbc.Driver) {
 	q.mem.AssertSize(t, 0)
 }
 
-func (q *MySQLQuirks) DatabaseOptions() map[string]string {
+func (q *SingleStoreQuirks) DatabaseOptions() map[string]string {
 	return map[string]string{
 		adbc.OptionKeyURI: q.dsn,
 	}
 }
 
-func (q *MySQLQuirks) CreateSampleTable(tableName string, r arrow.RecordBatch) error {
+func (q *SingleStoreQuirks) CreateSampleTable(tableName string, r arrow.RecordBatch) error {
 	// Use standard database/sql to create table directly
-	db, err := sql.Open("mysql", q.dsn)
+	db, err := sql.Open("singlestore", q.dsn)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (q *MySQLQuirks) CreateSampleTable(tableName string, r arrow.RecordBatch) e
 		createQuery.WriteString(field.Name)
 		createQuery.WriteString(" ")
 
-		// Map Arrow types to MySQL types
+		// Map Arrow types to SingleStore types
 		switch field.Type.ID() {
 		case arrow.INT32:
 			createQuery.WriteString("INT")
@@ -177,7 +177,7 @@ func (q *MySQLQuirks) CreateSampleTable(tableName string, r arrow.RecordBatch) e
 	return nil
 }
 
-func (q *MySQLQuirks) DropTable(cnxn adbc.Connection, tblName string) error {
+func (q *SingleStoreQuirks) DropTable(cnxn adbc.Connection, tblName string) error {
 	stmt, err := cnxn.NewStatement()
 	if err != nil {
 		return err
@@ -194,8 +194,8 @@ func (q *MySQLQuirks) DropTable(cnxn adbc.Connection, tblName string) error {
 	return err
 }
 
-func (q *MySQLQuirks) SampleTableSchemaMetadata(tblName string, dt arrow.DataType) arrow.Metadata {
-	// Return metadata that matches what our MySQL type converter actually returns
+func (q *SingleStoreQuirks) SampleTableSchemaMetadata(tblName string, dt arrow.DataType) arrow.Metadata {
+	// Return metadata that matches what our SingleStore type converter actually returns
 	metadata := map[string]string{}
 
 	switch dt.ID() {
@@ -227,31 +227,31 @@ func (q *MySQLQuirks) SampleTableSchemaMetadata(tblName string, dt arrow.DataTyp
 	return arrow.MetadataFrom(metadata)
 }
 
-func (q *MySQLQuirks) Alloc() memory.Allocator      { return q.mem }
-func (q *MySQLQuirks) BindParameter(idx int) string { return "?" }
+func (q *SingleStoreQuirks) Alloc() memory.Allocator      { return q.mem }
+func (q *SingleStoreQuirks) BindParameter(idx int) string { return "?" }
 
-// SupportsBulkIngest returns false because MySQL doesn't support "NULLS LAST" syntax
+// SupportsBulkIngest returns false because SingleStore doesn't support "NULLS LAST" syntax
 // used in the ADBC validation bulk ingest tests.
 // TODO: enable this once the validation framework is fixed.
 // Filed issue: https://github.com/adbc-drivers/driverbase-go/issues/69
-func (q *MySQLQuirks) SupportsBulkIngest(string) bool              { return false }
-func (q *MySQLQuirks) SupportsConcurrentStatements() bool          { return false }
-func (q *MySQLQuirks) SupportsCurrentCatalogSchema() bool          { return true }
-func (q *MySQLQuirks) SupportsExecuteSchema() bool                 { return true }
-func (q *MySQLQuirks) SupportsGetSetOptions() bool                 { return true }
-func (q *MySQLQuirks) SupportsPartitionedData() bool               { return false }
-func (q *MySQLQuirks) SupportsStatistics() bool                    { return false }
-func (q *MySQLQuirks) SupportsTransactions() bool                  { return false }
-func (q *MySQLQuirks) SupportsGetParameterSchema() bool            { return false }
-func (q *MySQLQuirks) SupportsDynamicParameterBinding() bool       { return true }
-func (q *MySQLQuirks) SupportsErrorIngestIncompatibleSchema() bool { return true }
-func (q *MySQLQuirks) Catalog() string                             { return "db" }
-func (q *MySQLQuirks) DBSchema() string                            { return "" }
+func (q *SingleStoreQuirks) SupportsBulkIngest(string) bool              { return false }
+func (q *SingleStoreQuirks) SupportsConcurrentStatements() bool          { return false }
+func (q *SingleStoreQuirks) SupportsCurrentCatalogSchema() bool          { return true }
+func (q *SingleStoreQuirks) SupportsExecuteSchema() bool                 { return true }
+func (q *SingleStoreQuirks) SupportsGetSetOptions() bool                 { return true }
+func (q *SingleStoreQuirks) SupportsPartitionedData() bool               { return false }
+func (q *SingleStoreQuirks) SupportsStatistics() bool                    { return false }
+func (q *SingleStoreQuirks) SupportsTransactions() bool                  { return false }
+func (q *SingleStoreQuirks) SupportsGetParameterSchema() bool            { return false }
+func (q *SingleStoreQuirks) SupportsDynamicParameterBinding() bool       { return true }
+func (q *SingleStoreQuirks) SupportsErrorIngestIncompatibleSchema() bool { return true }
+func (q *SingleStoreQuirks) Catalog() string                             { return "db" }
+func (q *SingleStoreQuirks) DBSchema() string                            { return "" }
 
-func (q *MySQLQuirks) GetMetadata(code adbc.InfoCode) interface{} {
+func (q *SingleStoreQuirks) GetMetadata(code adbc.InfoCode) interface{} {
 	switch code {
 	case adbc.InfoDriverName:
-		return "ADBC Driver Foundry Driver for MySQL"
+		return "ADBC Driver Foundry Driver for SingleStore"
 	case adbc.InfoDriverVersion:
 		return "(unknown or development build)"
 	case adbc.InfoDriverArrowVersion:
@@ -263,7 +263,7 @@ func (q *MySQLQuirks) GetMetadata(code adbc.InfoCode) interface{} {
 	case adbc.InfoDriverADBCVersion:
 		return adbc.AdbcVersion1_1_0
 	case adbc.InfoVendorName:
-		return "MySQL"
+		return "SingleStore"
 	case adbc.InfoVendorSql:
 		return true
 	case adbc.InfoVendorSubstrait:
@@ -272,28 +272,28 @@ func (q *MySQLQuirks) GetMetadata(code adbc.InfoCode) interface{} {
 	return nil
 }
 
-func withQuirks(t *testing.T, fn func(*MySQLQuirks)) {
-	dsn := os.Getenv("MYSQL_DSN")
+func withQuirks(t *testing.T, fn func(*SingleStoreQuirks)) {
+	dsn := os.Getenv("SINGLESTORE_DSN")
 	if dsn == "" {
-		t.Skip("Set MYSQL_DSN environment variable for validation tests")
+		t.Skip("Set SINGLESTORE_DSN environment variable for validation tests")
 	}
 
-	q := &MySQLQuirks{dsn: dsn}
+	q := &SingleStoreQuirks{dsn: dsn}
 	fn(q)
 }
 
-type MySQLStatementTests struct {
+type SingleStoreStatementTests struct {
 	validation.StatementTests
 }
 
-func (s *MySQLStatementTests) TestSqlIngestErrors() {
+func (s *SingleStoreStatementTests) TestSqlIngestErrors() {
 	s.T().Skip()
 }
 
 // TestValidation runs the comprehensive ADBC validation test suite
 // This is the primary test that validates ADBC specification compliance
 func TestValidation(t *testing.T) {
-	withQuirks(t, func(q *MySQLQuirks) {
+	withQuirks(t, func(q *SingleStoreQuirks) {
 		suite.Run(t, &validation.DatabaseTests{Quirks: q})
 		suite.Run(t, &validation.ConnectionTests{Quirks: q})
 		suite.Run(t, &validation.StatementTests{Quirks: q})
@@ -302,10 +302,10 @@ func TestValidation(t *testing.T) {
 
 // -------------------- Additional Tests --------------------
 
-type MySQLTests struct {
+type SingleStoreTests struct {
 	suite.Suite
 
-	Quirks *MySQLQuirks
+	Quirks *SingleStoreQuirks
 
 	ctx    context.Context
 	driver adbc.Driver
@@ -314,7 +314,7 @@ type MySQLTests struct {
 	stmt   adbc.Statement
 }
 
-func (s *MySQLTests) SetupTest() {
+func (s *SingleStoreTests) SetupTest() {
 	var err error
 	s.ctx = context.Background()
 	s.driver = s.Quirks.SetupDriver(s.T())
@@ -326,7 +326,7 @@ func (s *MySQLTests) SetupTest() {
 	s.NoError(err)
 }
 
-func (s *MySQLTests) TearDownTest() {
+func (s *SingleStoreTests) TearDownTest() {
 	s.NoError(s.stmt.Close())
 	s.NoError(s.cnxn.Close())
 	s.Quirks.TearDownDriver(s.T(), s.driver)
@@ -343,8 +343,8 @@ type selectCase struct {
 	expected string
 }
 
-func (s *MySQLTests) TestSelect() {
-	// Create test table with various MySQL types including spatial
+func (s *SingleStoreTests) TestSelect() {
+	// Create test table with various SingleStore types including spatial
 	s.NoError(s.stmt.SetSqlQuery(`
 		CREATE TEMPORARY TABLE test_types (
 			bool_col TINYINT(1),
@@ -521,9 +521,9 @@ func (s *MySQLTests) TestSelect() {
 					Type:     arrow.BinaryTypes.String,
 					Nullable: true,
 					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "status",
-						"sql.database_type_name": "ENUM",
-						"mysql.is_enum_set":      "true",
+						"sql.column_name":         "status",
+						"sql.database_type_name":  "ENUM",
+						"singlestore.is_enum_set": "true",
 					}),
 				},
 			}, nil),
@@ -540,7 +540,7 @@ func (s *MySQLTests) TestSelect() {
 					Metadata: arrow.MetadataFrom(map[string]string{
 						"sql.column_name":        "location",
 						"sql.database_type_name": "GEOMETRY",
-						"mysql.is_spatial":       "true",
+						"singlestore.is_spatial": "true",
 					}),
 				},
 			}, nil),
@@ -557,7 +557,7 @@ func (s *MySQLTests) TestSelect() {
 					Metadata: arrow.MetadataFrom(map[string]string{
 						"sql.column_name":        "area",
 						"sql.database_type_name": "GEOMETRY",
-						"mysql.is_spatial":       "true",
+						"singlestore.is_spatial": "true",
 					}),
 				},
 			}, nil),
@@ -574,7 +574,7 @@ func (s *MySQLTests) TestSelect() {
 					Metadata: arrow.MetadataFrom(map[string]string{
 						"sql.column_name":        "shape",
 						"sql.database_type_name": "GEOMETRY",
-						"mysql.is_spatial":       "true",
+						"singlestore.is_spatial": "true",
 					}),
 				},
 			}, nil),
@@ -623,7 +623,7 @@ func (s *MySQLTests) TestSelect() {
 	}
 }
 
-type MySQLTestSuite struct {
+type SingleStoreTestSuite struct {
 	suite.Suite
 	dsn    string
 	mem    *memory.CheckedAllocator
@@ -634,17 +634,17 @@ type MySQLTestSuite struct {
 	stmt   adbc.Statement
 }
 
-func (s *MySQLTestSuite) SetupSuite() {
+func (s *SingleStoreTestSuite) SetupSuite() {
 	var err error
-	s.dsn = os.Getenv("MYSQL_DSN")
+	s.dsn = os.Getenv("SINGLESTORE_DSN")
 	if s.dsn == "" {
-		s.T().Skip("Set MYSQL_DSN environment variable")
+		s.T().Skip("Set SINGLESTORE_DSN environment variable")
 	}
 
 	s.ctx = context.Background()
 	s.mem = memory.NewCheckedAllocator(memory.DefaultAllocator)
 
-	s.driver = mysql.NewDriver(s.mem)
+	s.driver = singlestore.NewDriver(s.mem)
 	s.db, err = s.driver.NewDatabase(map[string]string{
 		adbc.OptionKeyURI: s.dsn,
 	})
@@ -657,7 +657,7 @@ func (s *MySQLTestSuite) SetupSuite() {
 	s.NoError(err)
 }
 
-func (s *MySQLTestSuite) TearDownSuite() {
+func (s *SingleStoreTestSuite) TearDownSuite() {
 	if s.stmt != nil {
 		s.NoError(s.stmt.Close())
 	}
@@ -670,216 +670,216 @@ func (s *MySQLTestSuite) TearDownSuite() {
 	s.mem.AssertSize(s.T(), 0)
 }
 
-func TestMySQLTypeTests(t *testing.T) {
-	dsn := os.Getenv("MYSQL_DSN")
+func TestSingleStoreTypeTests(t *testing.T) {
+	dsn := os.Getenv("SINGLESTORE_DSN")
 	if dsn == "" {
-		t.Skip("Set MYSQL_DSN environment variable for type tests")
+		t.Skip("Set SINGLESTORE_DSN environment variable for type tests")
 	}
 
-	quirks := &MySQLQuirks{dsn: dsn}
-	suite.Run(t, &MySQLTests{Quirks: quirks})
+	quirks := &SingleStoreQuirks{dsn: dsn}
+	suite.Run(t, &SingleStoreTests{Quirks: quirks})
 }
 
-func TestMySQLIntegrationSuite(t *testing.T) {
-	suite.Run(t, new(MySQLTestSuite))
+func TestSingleStoreIntegrationSuite(t *testing.T) {
+	suite.Run(t, new(SingleStoreTestSuite))
 }
 
-// TestURIParsing tests the parseToMySQLDSN function with various URI formats
+// TestURIParsing tests the parseToSingleStoreDSN function with various URI formats
 func TestURIParsing(t *testing.T) {
-	factory := mysql.NewMySQLDBFactory()
+	factory := singlestore.NewSingleStoreDBFactory()
 
 	tests := []struct {
-		name          string
-		mysqlURI      string
-		username      string
-		password      string
-		expectedDSN   string
-		shouldError   bool
-		errorContains string
+		name           string
+		singlestoreURI string
+		username       string
+		password       string
+		expectedDSN    string
+		shouldError    bool
+		errorContains  string
 	}{
 		// TCP connection variations
 		{
-			name:        "basic tcp with port",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb",
+			name:           "basic tcp with port",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "tcp without port - should default to 3306",
-			mysqlURI:    "mysql://user:pass@localhost/testdb",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb",
+			name:           "tcp without port - should default to 3306",
+			singlestoreURI: "mysql://user:pass@localhost/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:          "tcp without host - should be invalid",
-			mysqlURI:      "mysql://user:pass@/testdb",
-			shouldError:   true,
-			errorContains: "missing hostname in URI",
+			name:           "tcp without host - should be invalid",
+			singlestoreURI: "mysql://user:pass@/testdb",
+			shouldError:    true,
+			errorContains:  "missing hostname in URI",
 		},
 		{
-			name:        "tcp without database",
-			mysqlURI:    "mysql://user:pass@localhost:3306",
-			expectedDSN: "user:pass@tcp(localhost:3306)/",
+			name:           "tcp without database",
+			singlestoreURI: "mysql://user:pass@localhost:3306",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/",
 		},
 		{
-			name:        "tcp without database but with slash",
-			mysqlURI:    "mysql://user:pass@localhost:3306/",
-			expectedDSN: "user:pass@tcp(localhost:3306)/",
+			name:           "tcp without database but with slash",
+			singlestoreURI: "mysql://user:pass@localhost:3306/",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/",
 		},
 		{
-			name:        "tcp with custom port",
-			mysqlURI:    "mysql://user:pass@example.com:3307/myapp",
-			expectedDSN: "user:pass@tcp(example.com:3307)/myapp",
+			name:           "tcp with custom port",
+			singlestoreURI: "mysql://user:pass@example.com:3307/myapp",
+			expectedDSN:    "user:pass@tcp(example.com:3307)/myapp",
 		},
 		{
-			name:        "tcp with ip address",
-			mysqlURI:    "mysql://user:pass@127.0.0.1:3306/testdb",
-			expectedDSN: "user:pass@tcp(127.0.0.1:3306)/testdb",
+			name:           "tcp with ip address",
+			singlestoreURI: "mysql://user:pass@127.0.0.1:3306/testdb",
+			expectedDSN:    "user:pass@tcp(127.0.0.1:3306)/testdb",
 		},
 		{
-			name:        "tcp with ipv6 host",
-			mysqlURI:    "mysql://user:pass@[::1]:3306/testdb",
-			expectedDSN: "user:pass@tcp([::1]:3306)/testdb",
+			name:           "tcp with ipv6 host",
+			singlestoreURI: "mysql://user:pass@[::1]:3306/testdb",
+			expectedDSN:    "user:pass@tcp([::1]:3306)/testdb",
 		},
 		{
-			name:        "tcp with ipv6 host, default port",
-			mysqlURI:    "mysql://user:pass@[::1]/testdb",
-			expectedDSN: "user:pass@tcp([::1]:3306)/testdb",
+			name:           "tcp with ipv6 host, default port",
+			singlestoreURI: "mysql://user:pass@[::1]/testdb",
+			expectedDSN:    "user:pass@tcp([::1]:3306)/testdb",
 		},
 
 		// Credential handling variations
 		{
-			name:        "no credentials in uri",
-			mysqlURI:    "mysql://localhost:3306/testdb",
-			expectedDSN: "tcp(localhost:3306)/testdb",
+			name:           "no credentials in uri",
+			singlestoreURI: "mysql://localhost:3306/testdb",
+			expectedDSN:    "tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "only username in uri",
-			mysqlURI:    "mysql://user@localhost:3306/testdb",
-			expectedDSN: "user@tcp(localhost:3306)/testdb",
+			name:           "only username in uri",
+			singlestoreURI: "mysql://user@localhost:3306/testdb",
+			expectedDSN:    "user@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "override credentials with options",
-			mysqlURI:    "mysql://olduser:oldpass@localhost:3306/testdb",
-			username:    "newuser",
-			password:    "newpass",
-			expectedDSN: "newuser:newpass@tcp(localhost:3306)/testdb",
+			name:           "override credentials with options",
+			singlestoreURI: "mysql://olduser:oldpass@localhost:3306/testdb",
+			username:       "newuser",
+			password:       "newpass",
+			expectedDSN:    "newuser:newpass@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "add credentials via options",
-			mysqlURI:    "mysql://localhost:3306/testdb",
-			username:    "admin",
-			password:    "secret",
-			expectedDSN: "admin:secret@tcp(localhost:3306)/testdb",
+			name:           "add credentials via options",
+			singlestoreURI: "mysql://localhost:3306/testdb",
+			username:       "admin",
+			password:       "secret",
+			expectedDSN:    "admin:secret@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "override only username",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb",
-			username:    "newuser",
-			expectedDSN: "newuser:pass@tcp(localhost:3306)/testdb",
+			name:           "override only username",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			username:       "newuser",
+			expectedDSN:    "newuser:pass@tcp(localhost:3306)/testdb",
 		},
 		{
-			name:        "override only password",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb",
-			password:    "newpass",
-			expectedDSN: "user:newpass@tcp(localhost:3306)/testdb",
+			name:           "override only password",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			password:       "newpass",
+			expectedDSN:    "user:newpass@tcp(localhost:3306)/testdb",
 		},
 
 		// Query parameter variations
 		{
-			name:        "single query parameter",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb?charset=utf8mb4",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb?charset=utf8mb4",
+			name:           "single query parameter",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb?charset=utf8mb4",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?charset=utf8mb4",
 		},
 		{
-			name:        "multiple query parameters",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb?charset=utf8mb4&timeout=30s&tls=false",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb?charset=utf8mb4&timeout=30s&tls=false",
+			name:           "multiple query parameters",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb?charset=utf8mb4&timeout=30s&tls=false",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?charset=utf8mb4&timeout=30s&tls=false",
 		},
 		{
-			name:        "ssl parameters",
-			mysqlURI:    "mysql://user:pass@localhost:3306/testdb?tls=skip-verify&timeout=10s",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb?tls=skip-verify&timeout=10s",
+			name:           "ssl parameters",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb?tls=skip-verify&timeout=10s",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?tls=skip-verify&timeout=10s",
 		},
 		{
-			name:        "url encoded database name",
-			mysqlURI:    "mysql://user:pass@localhost:3306/test%20db?charset=utf8",
-			expectedDSN: "user:pass@tcp(localhost:3306)/test%20db?charset=utf8",
+			name:           "url encoded database name",
+			singlestoreURI: "mysql://user:pass@localhost:3306/test%20db?charset=utf8",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/test%20db?charset=utf8",
 		},
 		{
-			name:        "query parameters with encoding",
-			mysqlURI:    "mysql://user:pass@localhost/testdb?time_zone=%27%2B00%3A00%27",
-			expectedDSN: "user:pass@tcp(localhost:3306)/testdb?time_zone=%27%2B00%3A00%27",
+			name:           "query parameters with encoding",
+			singlestoreURI: "mysql://user:pass@localhost/testdb?time_zone=%27%2B00%3A00%27",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?time_zone=%27%2B00%3A00%27",
 		},
 
 		// Unix socket variations
 		{
-			name:        "unix socket with parentheses",
-			mysqlURI:    "mysql://user:pass@(/tmp/mysql.sock)/testdb",
-			expectedDSN: "user:pass@unix(/tmp/mysql.sock)/testdb",
+			name:           "unix socket with parentheses",
+			singlestoreURI: "mysql://user:pass@(/tmp/singlestore.sock)/testdb",
+			expectedDSN:    "user:pass@unix(/tmp/singlestore.sock)/testdb",
 		},
 		{
-			name:          "unix socket with percent encoding - should be invalid. Must use parenthesis",
-			mysqlURI:      "mysql://user:pass@/tmp%2Fmysql.sock/testdb",
-			shouldError:   true,
-			errorContains: "missing hostname in URI",
+			name:           "unix socket with percent encoding - should be invalid. Must use parenthesis",
+			singlestoreURI: "mysql://user:pass@/tmp%2Fsinglestore.sock/testdb",
+			shouldError:    true,
+			errorContains:  "missing hostname in URI",
 		},
 		{
-			name:        "unix socket with complex path",
-			mysqlURI:    "mysql://user:pass@(/var/run/mysqld/mysqld.sock)/myapp",
-			expectedDSN: "user:pass@unix(/var/run/mysqld/mysqld.sock)/myapp",
+			name:           "unix socket with complex path",
+			singlestoreURI: "mysql://user:pass@(/var/run/mysqld/mysqld.sock)/myapp",
+			expectedDSN:    "user:pass@unix(/var/run/mysqld/mysqld.sock)/myapp",
 		},
 		{
-			name:        "unix socket without database",
-			mysqlURI:    "mysql://user:pass@(/tmp/mysql.sock)",
-			expectedDSN: "user:pass@unix(/tmp/mysql.sock)/",
+			name:           "unix socket without database",
+			singlestoreURI: "mysql://user:pass@(/tmp/singlestore.sock)",
+			expectedDSN:    "user:pass@unix(/tmp/singlestore.sock)/",
 		},
 		{
-			name:        "unix socket with query params",
-			mysqlURI:    "mysql://user:pass@(/tmp/mysql.sock)/testdb?charset=utf8mb4",
-			expectedDSN: "user:pass@unix(/tmp/mysql.sock)/testdb?charset=utf8mb4",
+			name:           "unix socket with query params",
+			singlestoreURI: "mysql://user:pass@(/tmp/singlestore.sock)/testdb?charset=utf8mb4",
+			expectedDSN:    "user:pass@unix(/tmp/singlestore.sock)/testdb?charset=utf8mb4",
 		},
 		{
-			name:          "unix socket with empty host (ambiguous) - should be invalid",
-			mysqlURI:      "mysql://user:pass@/tmp/mysql.sock/testdb",
-			shouldError:   true,
-			errorContains: "missing hostname in URI",
+			name:           "unix socket with empty host (ambiguous) - should be invalid",
+			singlestoreURI: "mysql://user:pass@/tmp/singlestore.sock/testdb",
+			shouldError:    true,
+			errorContains:  "missing hostname in URI",
 		},
 		{
-			name:          "invalid unix socket (missing parenthesis)",
-			mysqlURI:      "mysql://user@(/tmp/mysql.sock/testdb",
-			shouldError:   true,
-			errorContains: "missing closing ')'",
+			name:           "invalid unix socket (missing parenthesis)",
+			singlestoreURI: "mysql://user@(/tmp/singlestore.sock/testdb",
+			shouldError:    true,
+			errorContains:  "missing closing ')'",
 		},
 		{
-			name:        "unix socket (paren) with encoded db name",
-			mysqlURI:    "mysql://user:pass@(/tmp/mysql.sock)/my%20db?foo=bar",
-			expectedDSN: "user:pass@unix(/tmp/mysql.sock)/my%20db?foo=bar",
+			name:           "unix socket (paren) with encoded db name",
+			singlestoreURI: "mysql://user:pass@(/tmp/singlestore.sock)/my%20db?foo=bar",
+			expectedDSN:    "user:pass@unix(/tmp/singlestore.sock)/my%20db?foo=bar",
 		},
 		// Special characters and edge cases
 		{
-			name:        "credentials with special characters",
-			mysqlURI:    "mysql://my%40user:p%40ss%24word@localhost:3306/testdb",
-			expectedDSN: "my@user:p@ss$word@tcp(localhost:3306)/testdb",
+			name:           "credentials with special characters",
+			singlestoreURI: "mysql://my%40user:p%40ss%24word@localhost:3306/testdb",
+			expectedDSN:    "my@user:p@ss$word@tcp(localhost:3306)/testdb",
 		},
 
 		// Error cases
 		{
-			name:          "invalid mysql uri format",
-			mysqlURI:      "mysql://[invalid-uri",
-			shouldError:   true,
-			errorContains: "invalid MySQL URI format",
+			name:           "invalid singlestore uri format",
+			singlestoreURI: "mysql://[invalid-uri",
+			shouldError:    true,
+			errorContains:  "invalid SingleStore URI format",
 		},
 		{
-			name:          "invalid socket path encoding",
-			mysqlURI:      "mysql://user:pass@%ZZ%invalid/testdb",
-			shouldError:   true,
-			errorContains: "invalid MySQL URI format",
+			name:           "invalid socket path encoding",
+			singlestoreURI: "mysql://user:pass@%ZZ%invalid/testdb",
+			shouldError:    true,
+			errorContains:  "invalid SingleStore URI format",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := map[string]string{
-				adbc.OptionKeyURI: tt.mysqlURI,
+				adbc.OptionKeyURI: tt.singlestoreURI,
 			}
 			if tt.username != "" {
 				opts[adbc.OptionKeyUsername] = tt.username
@@ -888,7 +888,7 @@ func TestURIParsing(t *testing.T) {
 				opts[adbc.OptionKeyPassword] = tt.password
 			}
 
-			result, err := factory.BuildMySQLDSN(opts)
+			result, err := factory.BuildSingleStoreDSN(opts)
 
 			if tt.shouldError {
 				require.ErrorContains(t, err, tt.errorContains)

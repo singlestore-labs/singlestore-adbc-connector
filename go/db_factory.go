@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mysql
+package singlestore
 
 import (
 	"context"
@@ -27,18 +27,18 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// MySQLDBFactory provides MySQL-specific database connection creation.
+// SingleStoreDBFactory provides SingleStore-specific database connection creation.
 // It uses the go-sql-driver/mysql Config struct for proper DSN formatting.
-type MySQLDBFactory struct{}
+type SingleStoreDBFactory struct{}
 
-// NewMySQLDBFactory creates a new MySQLDBFactory.
-func NewMySQLDBFactory() *MySQLDBFactory {
-	return &MySQLDBFactory{}
+// NewSingleStoreDBFactory creates a new SingleStoreDBFactory.
+func NewSingleStoreDBFactory() *SingleStoreDBFactory {
+	return &SingleStoreDBFactory{}
 }
 
-// CreateDB creates a *sql.DB using sql.Open with a MySQL-specific DSN.
-func (f *MySQLDBFactory) CreateDB(ctx context.Context, driverName string, opts map[string]string, logger *slog.Logger) (*sql.DB, error) {
-	dsn, err := f.BuildMySQLDSN(opts)
+// CreateDB creates a *sql.DB using sql.Open with a SingleStore-specific DSN.
+func (f *SingleStoreDBFactory) CreateDB(ctx context.Context, driverName string, opts map[string]string, logger *slog.Logger) (*sql.DB, error) {
+	dsn, err := f.BuildSingleStoreDSN(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (f *MySQLDBFactory) CreateDB(ctx context.Context, driverName string, opts m
 }
 
 // forceUTCTimezone parses the DSN and overrides the time_zone and loc parameters to UTC
-func (f *MySQLDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger) (string, error) {
+func (f *SingleStoreDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger) (string, error) {
 	cfg, err := mysql.ParseDSN(dsn)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse DSN for timezone override: %v", err)
@@ -63,7 +63,7 @@ func (f *MySQLDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger) (stri
 		if logger != nil {
 			logger.Warn("time_zone parameter is not supported, overriding to UTC",
 				"requested_timezone", existingTz,
-				"reason", "UTC is required for ADBC MySQL driver")
+				"reason", "UTC is required for ADBC SingleStore driver")
 		}
 	}
 
@@ -71,7 +71,7 @@ func (f *MySQLDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger) (stri
 		if logger != nil {
 			logger.Warn("loc parameter is not supported, overriding to UTC",
 				"requested_loc", existingLoc,
-				"reason", "UTC is required for ADBC MySQL driver")
+				"reason", "UTC is required for ADBC SingleStore driver")
 		}
 	}
 
@@ -84,12 +84,12 @@ func (f *MySQLDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger) (stri
 	return cfg.FormatDSN(), nil
 }
 
-// buildMySQLDSN constructs a MySQL DSN from the provided options.
+// BuildSingleStoreDSN constructs a SingleStore DSN from the provided options.
 // Handles the following scenarios:
-//  1. MySQL URI: "mysql://user:pass@host:port/schema?params" → converted to DSN
+//  1. SingleStore URI: "mysql://user:pass@host:port/schema?params" → converted to DSN
 //  2. Full DSN: "user:pass@tcp(host:port)/db" → returned as-is or credentials updated
 //  3. Plain host + credentials: "localhost:3306" + username/password → converted to DSN
-func (f *MySQLDBFactory) BuildMySQLDSN(opts map[string]string) (string, error) {
+func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (string, error) {
 	baseURI := opts[adbc.OptionKeyURI]
 	username := opts[adbc.OptionKeyUsername]
 	password := opts[adbc.OptionKeyPassword]
@@ -100,9 +100,9 @@ func (f *MySQLDBFactory) BuildMySQLDSN(opts map[string]string) (string, error) {
 		return "", fmt.Errorf("missing required option %s", adbc.OptionKeyURI)
 	}
 
-	// Check if this is a MySQL URI (mysql://)
+	// Check if this is a SingleStore URI (mysql://)
 	if strings.HasPrefix(baseURI, "mysql://") {
-		return f.parseToMySQLDSN(baseURI, username, password)
+		return f.parseToSingleStoreDSN(baseURI, username, password)
 	}
 
 	if username == "" && password == "" {
@@ -111,16 +111,16 @@ func (f *MySQLDBFactory) BuildMySQLDSN(opts map[string]string) (string, error) {
 	return f.buildFromNativeDSN(baseURI, username, password)
 }
 
-// parseToMySQLDSN converts a MySQL URI to MySQL DSN format.
+// parseToSingleStoreDSN converts a SingleStore URI to SingleStore DSN format.
 // Examples:
 //
 //	mysql://root@localhost:3306/demo → root@tcp(localhost:3306)/demo
 //	mysql://user:pass@host/db?charset=utf8mb4 → user:pass@tcp(host:3306)/db?charset=utf8mb4
 //	mysql://user@(/path/to/socket.sock)/db → user@unix(/path/to/socket.sock)/db
-func (f *MySQLDBFactory) parseToMySQLDSN(mysqlURI, username, password string) (string, error) {
-	u, err := url.Parse(mysqlURI)
+func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, password string) (string, error) {
+	u, err := url.Parse(singlestoreURI)
 	if err != nil {
-		return "", fmt.Errorf("invalid MySQL URI format: %v", err)
+		return "", fmt.Errorf("invalid SingleStore URI format: %v", err)
 	}
 
 	cfg := mysql.NewConfig()
@@ -141,7 +141,7 @@ func (f *MySQLDBFactory) parseToMySQLDSN(mysqlURI, username, password string) (s
 
 	var dbPath string
 
-	// MySQL socket URIs have non-standard hostname patterns that require special handling after parsing.
+	// SingleStore socket URIs have non-standard hostname patterns that require special handling after parsing.
 	switch u.Hostname() {
 	case "(":
 		// Case 1: Socket with parentheses: mysql://user@(/path/to/socket.sock)/db
@@ -149,7 +149,7 @@ func (f *MySQLDBFactory) parseToMySQLDSN(mysqlURI, username, password string) (s
 
 		closeParenIndex := strings.Index(u.Path, ")")
 		if closeParenIndex == -1 {
-			return "", fmt.Errorf("invalid MySQL URI: missing closing ')' for socket path in %s", u.Path)
+			return "", fmt.Errorf("invalid SingleStore URI: missing closing ')' for socket path in %s", u.Path)
 		}
 
 		cfg.Addr = u.Path[:closeParenIndex]
@@ -158,7 +158,7 @@ func (f *MySQLDBFactory) parseToMySQLDSN(mysqlURI, username, password string) (s
 	case "":
 		// Case 2: Empty host is invalid - hostname must be explicit
 		// Use parentheses syntax for sockets: mysql://user@(/path/to/socket)/db
-		return "", fmt.Errorf("missing hostname in URI: %s. Use explicit hostname or socket syntax: mysql://user@(socketpath)/db", mysqlURI)
+		return "", fmt.Errorf("missing hostname in URI: %s. Use explicit hostname or socket syntax: mysql://user@(socketpath)/db", singlestoreURI)
 
 	default:
 		// Case 3: Regular TCP connection with a hostname
@@ -187,16 +187,16 @@ func (f *MySQLDBFactory) parseToMySQLDSN(mysqlURI, username, password string) (s
 	return dsn, nil
 }
 
-// buildFromNativeDSN handles MySQL's native DSN format and plain host strings.
-func (f *MySQLDBFactory) buildFromNativeDSN(baseURI, username, password string) (string, error) {
+// buildFromNativeDSN handles SingleStore's native DSN format and plain host strings.
+func (f *SingleStoreDBFactory) buildFromNativeDSN(baseURI, username, password string) (string, error) {
 	var cfg *mysql.Config
 	var err error
 
 	if strings.Contains(baseURI, "@") || strings.Contains(baseURI, "/") {
-		// Try to parse as existing MySQL DSN
+		// Try to parse as existing SingleStore DSN
 		cfg, err = mysql.ParseDSN(baseURI)
 		if err != nil {
-			return "", fmt.Errorf("invalid MySQL DSN format: %v", err)
+			return "", fmt.Errorf("invalid SingleStore DSN format: %v", err)
 		}
 	} else {
 		// Treat as plain host string
@@ -216,4 +216,4 @@ func (f *MySQLDBFactory) buildFromNativeDSN(baseURI, username, password string) 
 	return cfg.FormatDSN(), nil
 }
 
-var _ sqlwrapper.DBFactory = (*MySQLDBFactory)(nil)
+var _ sqlwrapper.DBFactory = (*SingleStoreDBFactory)(nil)
