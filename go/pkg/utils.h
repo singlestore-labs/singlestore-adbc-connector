@@ -26,75 +26,151 @@
 #include "adbc.h"
 #include <stdlib.h>
 
-struct AdbcError* MySQLErrorFromArrayStream(struct ArrowArrayStream*, AdbcStatusCode*);
-AdbcStatusCode MySQLDatabaseGetOption(struct AdbcDatabase*, const char*, char*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseGetOptionBytes(struct AdbcDatabase*, const char*, uint8_t*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseGetOptionDouble(struct AdbcDatabase*, const char*, double*, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseGetOptionInt(struct AdbcDatabase*, const char*, int64_t*, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseInit(struct AdbcDatabase* db, struct AdbcError* err);
-AdbcStatusCode MySQLDatabaseNew(struct AdbcDatabase* db, struct AdbcError* err);
-AdbcStatusCode MySQLDatabaseRelease(struct AdbcDatabase* db, struct AdbcError* err);
-AdbcStatusCode MySQLDatabaseSetOption(struct AdbcDatabase* db, const char* key, const char* value, struct AdbcError* err);
-AdbcStatusCode MySQLDatabaseSetOptionBytes(struct AdbcDatabase*, const char*, const uint8_t*, size_t, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseSetOptionDouble(struct AdbcDatabase*, const char*, double, struct AdbcError*);
-AdbcStatusCode MySQLDatabaseSetOptionInt(struct AdbcDatabase*, const char*, int64_t, struct AdbcError*);
+struct AdbcError* SingleStoreErrorFromArrayStream(struct ArrowArrayStream*,
+                                                  AdbcStatusCode*);
+AdbcStatusCode SingleStoreDatabaseGetOption(struct AdbcDatabase*, const char*, char*,
+                                            size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseGetOptionBytes(struct AdbcDatabase*, const char*,
+                                                 uint8_t*, size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseGetOptionDouble(struct AdbcDatabase*, const char*,
+                                                  double*, struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseGetOptionInt(struct AdbcDatabase*, const char*,
+                                               int64_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseInit(struct AdbcDatabase* db, struct AdbcError* err);
+AdbcStatusCode SingleStoreDatabaseNew(struct AdbcDatabase* db, struct AdbcError* err);
+AdbcStatusCode SingleStoreDatabaseRelease(struct AdbcDatabase* db, struct AdbcError* err);
+AdbcStatusCode SingleStoreDatabaseSetOption(struct AdbcDatabase* db, const char* key,
+                                            const char* value, struct AdbcError* err);
+AdbcStatusCode SingleStoreDatabaseSetOptionBytes(struct AdbcDatabase*, const char*,
+                                                 const uint8_t*, size_t,
+                                                 struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseSetOptionDouble(struct AdbcDatabase*, const char*,
+                                                  double, struct AdbcError*);
+AdbcStatusCode SingleStoreDatabaseSetOptionInt(struct AdbcDatabase*, const char*, int64_t,
+                                               struct AdbcError*);
 
-AdbcStatusCode MySQLConnectionCancel(struct AdbcConnection*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionCommit(struct AdbcConnection* cnxn, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionGetInfo(struct AdbcConnection* cnxn, const uint32_t* codes, size_t len, struct ArrowArrayStream* out, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionGetObjects(struct AdbcConnection* cnxn, int depth, const char* catalog, const char* dbSchema, const char* tableName, const char** tableType, const char* columnName, struct ArrowArrayStream* out, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionGetOption(struct AdbcConnection*, const char*, char*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetOptionBytes(struct AdbcConnection*, const char*, uint8_t*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetOptionDouble(struct AdbcConnection*, const char*, double*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetOptionInt(struct AdbcConnection*, const char*, int64_t*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetStatistics(struct AdbcConnection*, const char*, const char*, const char*, char, struct ArrowArrayStream*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetStatisticNames(struct AdbcConnection*, struct ArrowArrayStream*, struct AdbcError*);
-AdbcStatusCode MySQLConnectionGetTableSchema(struct AdbcConnection* cnxn, const char* catalog, const char* dbSchema, const char* tableName, struct ArrowSchema* schema, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionGetTableTypes(struct AdbcConnection* cnxn, struct ArrowArrayStream* out, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionInit(struct AdbcConnection* cnxn, struct AdbcDatabase* db, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionNew(struct AdbcConnection* cnxn, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionReadPartition(struct AdbcConnection* cnxn, const uint8_t* serialized, size_t serializedLen, struct ArrowArrayStream* out, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionRelease(struct AdbcConnection* cnxn, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionRollback(struct AdbcConnection* cnxn, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionSetOption(struct AdbcConnection* cnxn, const char* key, const char* val, struct AdbcError* err);
-AdbcStatusCode MySQLConnectionSetOptionBytes(struct AdbcConnection*, const char*, const uint8_t*, size_t, struct AdbcError*);
-AdbcStatusCode MySQLConnectionSetOptionDouble(struct AdbcConnection*, const char*, double, struct AdbcError*);
-AdbcStatusCode MySQLConnectionSetOptionInt(struct AdbcConnection*, const char*, int64_t, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionCancel(struct AdbcConnection*, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionCommit(struct AdbcConnection* cnxn,
+                                           struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionGetInfo(struct AdbcConnection* cnxn,
+                                            const uint32_t* codes, size_t len,
+                                            struct ArrowArrayStream* out,
+                                            struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionGetObjects(
+    struct AdbcConnection* cnxn, int depth, const char* catalog, const char* dbSchema,
+    const char* tableName, const char** tableType, const char* columnName,
+    struct ArrowArrayStream* out, struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionGetOption(struct AdbcConnection*, const char*, char*,
+                                              size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetOptionBytes(struct AdbcConnection*, const char*,
+                                                   uint8_t*, size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetOptionDouble(struct AdbcConnection*, const char*,
+                                                    double*, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetOptionInt(struct AdbcConnection*, const char*,
+                                                 int64_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetStatistics(struct AdbcConnection*, const char*,
+                                                  const char*, const char*, char,
+                                                  struct ArrowArrayStream*,
+                                                  struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetStatisticNames(struct AdbcConnection*,
+                                                      struct ArrowArrayStream*,
+                                                      struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionGetTableSchema(
+    struct AdbcConnection* cnxn, const char* catalog, const char* dbSchema,
+    const char* tableName, struct ArrowSchema* schema, struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionGetTableTypes(struct AdbcConnection* cnxn,
+                                                  struct ArrowArrayStream* out,
+                                                  struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionInit(struct AdbcConnection* cnxn,
+                                         struct AdbcDatabase* db, struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionNew(struct AdbcConnection* cnxn,
+                                        struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionReadPartition(struct AdbcConnection* cnxn,
+                                                  const uint8_t* serialized,
+                                                  size_t serializedLen,
+                                                  struct ArrowArrayStream* out,
+                                                  struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionRelease(struct AdbcConnection* cnxn,
+                                            struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionRollback(struct AdbcConnection* cnxn,
+                                             struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionSetOption(struct AdbcConnection* cnxn,
+                                              const char* key, const char* val,
+                                              struct AdbcError* err);
+AdbcStatusCode SingleStoreConnectionSetOptionBytes(struct AdbcConnection*, const char*,
+                                                   const uint8_t*, size_t,
+                                                   struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionSetOptionDouble(struct AdbcConnection*, const char*,
+                                                    double, struct AdbcError*);
+AdbcStatusCode SingleStoreConnectionSetOptionInt(struct AdbcConnection*, const char*,
+                                                 int64_t, struct AdbcError*);
 
-AdbcStatusCode MySQLStatementBind(struct AdbcStatement* stmt, struct ArrowArray* values, struct ArrowSchema* schema, struct AdbcError* err);
-AdbcStatusCode MySQLStatementBindStream(struct AdbcStatement* stmt, struct ArrowArrayStream* stream, struct AdbcError* err);
-AdbcStatusCode MySQLStatementCancel(struct AdbcStatement*, struct AdbcError*);
-AdbcStatusCode MySQLStatementExecuteQuery(struct AdbcStatement* stmt, struct ArrowArrayStream* out, int64_t* affected, struct AdbcError* err);
-AdbcStatusCode MySQLStatementExecutePartitions(struct AdbcStatement* stmt, struct ArrowSchema* schema, struct AdbcPartitions* partitions, int64_t* affected, struct AdbcError* err);
-AdbcStatusCode MySQLStatementExecutePartitionsTrampoline(struct AdbcStatement* stmt, struct ArrowSchema* schema, struct AdbcPartitions* partitions, int64_t* affected, struct AdbcError* err);
-AdbcStatusCode MySQLStatementExecuteSchema(struct AdbcStatement*, struct ArrowSchema*, struct AdbcError*);
-AdbcStatusCode MySQLStatementGetOption(struct AdbcStatement*, const char*, char*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLStatementGetOptionBytes(struct AdbcStatement*, const char*, uint8_t*, size_t*, struct AdbcError*);
-AdbcStatusCode MySQLStatementGetOptionDouble(struct AdbcStatement*, const char*, double*, struct AdbcError*);
-AdbcStatusCode MySQLStatementGetOptionInt(struct AdbcStatement*, const char*, int64_t*, struct AdbcError*);
-AdbcStatusCode MySQLStatementGetParameterSchema(struct AdbcStatement* stmt, struct ArrowSchema* schema, struct AdbcError* err);
-AdbcStatusCode MySQLStatementNew(struct AdbcConnection* cnxn, struct AdbcStatement* stmt, struct AdbcError* err);
-AdbcStatusCode MySQLStatementPrepare(struct AdbcStatement* stmt, struct AdbcError* err);
-AdbcStatusCode MySQLStatementRelease(struct AdbcStatement* stmt, struct AdbcError* err);
-AdbcStatusCode MySQLStatementSetOption(struct AdbcStatement* stmt, const char* key, const char* value, struct AdbcError* err);
-AdbcStatusCode MySQLStatementSetOptionBytes(struct AdbcStatement*, const char*, const uint8_t*, size_t, struct AdbcError*);
-AdbcStatusCode MySQLStatementSetOptionDouble(struct AdbcStatement*, const char*, double, struct AdbcError*);
-AdbcStatusCode MySQLStatementSetOptionInt(struct AdbcStatement*, const char*, int64_t, struct AdbcError*);
-AdbcStatusCode MySQLStatementSetSqlQuery(struct AdbcStatement* stmt, const char* query, struct AdbcError* err);
-AdbcStatusCode MySQLStatementSetSubstraitPlan(struct AdbcStatement* stmt, const uint8_t* plan, size_t length, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementBind(struct AdbcStatement* stmt,
+                                        struct ArrowArray* values,
+                                        struct ArrowSchema* schema,
+                                        struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementBindStream(struct AdbcStatement* stmt,
+                                              struct ArrowArrayStream* stream,
+                                              struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementCancel(struct AdbcStatement*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementExecuteQuery(struct AdbcStatement* stmt,
+                                                struct ArrowArrayStream* out,
+                                                int64_t* affected, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementExecutePartitions(struct AdbcStatement* stmt,
+                                                     struct ArrowSchema* schema,
+                                                     struct AdbcPartitions* partitions,
+                                                     int64_t* affected,
+                                                     struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementExecutePartitionsTrampoline(
+    struct AdbcStatement* stmt, struct ArrowSchema* schema,
+    struct AdbcPartitions* partitions, int64_t* affected, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementExecuteSchema(struct AdbcStatement*,
+                                                 struct ArrowSchema*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementGetOption(struct AdbcStatement*, const char*, char*,
+                                             size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementGetOptionBytes(struct AdbcStatement*, const char*,
+                                                  uint8_t*, size_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementGetOptionDouble(struct AdbcStatement*, const char*,
+                                                   double*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementGetOptionInt(struct AdbcStatement*, const char*,
+                                                int64_t*, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementGetParameterSchema(struct AdbcStatement* stmt,
+                                                      struct ArrowSchema* schema,
+                                                      struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementNew(struct AdbcConnection* cnxn,
+                                       struct AdbcStatement* stmt, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementPrepare(struct AdbcStatement* stmt,
+                                           struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementRelease(struct AdbcStatement* stmt,
+                                           struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementSetOption(struct AdbcStatement* stmt, const char* key,
+                                             const char* value, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementSetOptionBytes(struct AdbcStatement*, const char*,
+                                                  const uint8_t*, size_t,
+                                                  struct AdbcError*);
+AdbcStatusCode SingleStoreStatementSetOptionDouble(struct AdbcStatement*, const char*,
+                                                   double, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementSetOptionInt(struct AdbcStatement*, const char*,
+                                                int64_t, struct AdbcError*);
+AdbcStatusCode SingleStoreStatementSetSqlQuery(struct AdbcStatement* stmt,
+                                               const char* query, struct AdbcError* err);
+AdbcStatusCode SingleStoreStatementSetSubstraitPlan(struct AdbcStatement* stmt,
+                                                    const uint8_t* plan, size_t length,
+                                                    struct AdbcError* err);
 
-AdbcStatusCode AdbcDriverMySQLInit(int version, void* rawDriver, struct AdbcError* err);
+AdbcStatusCode AdbcDriverSingleStoreInit(int version, void* rawDriver,
+                                         struct AdbcError* err);
 
-static inline void MySQLerrRelease(struct AdbcError* error) {
+static inline void SingleStoreerrRelease(struct AdbcError* error) {
   if (error->release) {
     error->release(error);
     error->release = NULL;
   }
 }
 
-void MySQL_release_error(struct AdbcError* error);
+void SingleStore_release_error(struct AdbcError* error);
 
-struct MySQLError {
+struct SingleStoreError {
   char* message;
   char** keys;
   uint8_t** values;
@@ -102,10 +178,13 @@ struct MySQLError {
   int count;
 };
 
-void MySQLReleaseErrWithDetails(struct AdbcError* error);
+void SingleStoreReleaseErrWithDetails(struct AdbcError* error);
 
-int MySQLErrorGetDetailCount(const struct AdbcError* error);
-struct AdbcErrorDetail MySQLErrorGetDetail(const struct AdbcError* error, int index);
+int SingleStoreErrorGetDetailCount(const struct AdbcError* error);
+struct AdbcErrorDetail SingleStoreErrorGetDetail(const struct AdbcError* error,
+                                                 int index);
 
-int MySQLArrayStreamGetSchemaTrampoline(struct ArrowArrayStream* stream, struct ArrowSchema* out);
-int MySQLArrayStreamGetNextTrampoline(struct ArrowArrayStream* stream, struct ArrowArray* out);
+int SingleStoreArrayStreamGetSchemaTrampoline(struct ArrowArrayStream* stream,
+                                              struct ArrowSchema* out);
+int SingleStoreArrayStreamGetNextTrampoline(struct ArrowArrayStream* stream,
+                                            struct ArrowArray* out);
