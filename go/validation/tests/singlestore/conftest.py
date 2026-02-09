@@ -63,7 +63,10 @@ def uri(singlestore_host: str, singlestore_port: str, singlestore_database: str)
 
 @pytest.fixture(scope="session")
 def dsn(
-    creds: tuple[str, str], singlestore_host: str, singlestore_port: str, singlestore_database: str
+    creds: tuple[str, str],
+    singlestore_host: str,
+    singlestore_port: str,
+    singlestore_database: str
 ) -> str:
     """
     Constructs a SingleStore DSN in Go SingleStore Driver's native format.
