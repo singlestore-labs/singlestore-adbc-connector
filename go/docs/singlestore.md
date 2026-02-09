@@ -16,19 +16,18 @@
 ---
 
 {{ cross_reference|safe }}
-# MySQL Driver {{ version }}
+# SingleStore Driver {{ version }}
 
 {{ heading|safe }}
 
-This driver provides access to [MySQL][mysql]{target="_blank"}, a free and
-open-source relational database management system.
+This driver provides access to [SingleStore][singlestore]{target="_blank"} relational database management system.
 
 ## Installation
 
-The MySQL driver can be installed with [dbc](https://docs.columnar.tech/dbc):
+The SingleStore driver can be installed with [dbc](https://docs.columnar.tech/dbc):
 
 ```bash
-dbc install mysql
+dbc install singlestore
 ```
 
 ## Connecting
@@ -39,7 +38,7 @@ To connect, edit the `uri` option below to match your environment and run the fo
 from adbc_driver_manager import dbapi
 
 conn = dbapi.connect(
-  driver="mysql",
+  driver="singlestore",
   db_kwargs = {
     "uri": "root@tcp(localhost:3306)/demo"
   }
@@ -72,8 +71,8 @@ Components:
 - `password`: Optional (for authentication, requires user)
 - `host`: Required (must be explicitly specified)
 - `port`: Optional (defaults to 3306)
-- `schema`: Optional (can be empty, MySQL database name)
-- Query params: MySQL connection attributes
+- `schema`: Optional (can be empty, SingleStore database name)
+- Query params: SingleStore connection attributes
 
 :::{note}
 Reserved characters in URI elements must be URI-encoded. For example, `@` becomes `%40`. If you include a zone ID in an IPv6 address, the `%` character used as the separator must be replaced with `%25`.
@@ -81,7 +80,7 @@ Reserved characters in URI elements must be URI-encoded. For example, `@` become
 
 When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `(/path/to/socket.sock)`.
 
-The driver also supports the MySQL DSN format (see [Go MySQL Driver documentation](https://github.com/go-sql-driver/mysql?tab=readme-ov-file#dsn-data-source-name)), but standard URIs are recommended.
+The driver also supports the SingleStore DSN format (see [Go SingleStore Driver documentation](https://github.com/singlestore-labs/go-singlestore-driver?tab=readme-ov-file#dsn-data-source-name)), but standard URIs are recommended.
 
 ## Feature & Type Support
 
@@ -95,13 +94,6 @@ The driver also supports the MySQL DSN format (see [Go MySQL Driver documentatio
 
 {{ compatibility_info|safe }}
 
-## Previous Versions
-
-To see documentation for previous versions of this driver, see the following:
-
-- [v0.2.0](./v0.2.0.md)
-- [v0.1.0](./v0.1.0.md)
-
 {{ footnotes|safe }}
 
-[mysql]: https://www.mysql.com/
+[singlestore]: https://www.singlestore.com/

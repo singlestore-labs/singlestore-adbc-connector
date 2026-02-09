@@ -90,7 +90,7 @@ def test_userpass_options_override_uri(
 @pytest.mark.parametrize(
     "tls_param, expect_encrypted",
     [
-        # pytest.param("tls=true", True, id="tls=true"),  # Docker MySQL container uses a self-signed certificate that fails validation.
+        # pytest.param("tls=true", True, id="tls=true"),  # Docker SingleStore container uses a self-signed certificate that fails validation.
         pytest.param("tls=skip-verify", True, id="tls=skip-verify"),
         pytest.param("tls=false", False, id="tls=false"),
         pytest.param("tls=preferred", True, id="tls=preferred"),
@@ -135,14 +135,14 @@ def test_ssl_modes(
 def test_uri_default_port(
     driver: model.DriverQuirks,
     driver_path: str,
-    mysql_host: str,
-    mysql_database: str,
+    singlestore_host: str,
+    singlestore_database: str,
     creds: tuple[str, str],
 ) -> None:
     """Tests that a URI without a port connects using default 3306."""
     username, password = creds
 
-    no_port_uri = f"mysql://{username}:{password}@{mysql_host}/{mysql_database}"
+    no_port_uri = f"mysql://{username}:{password}@{singlestore_host}/{singlestore_database}"
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
@@ -157,13 +157,13 @@ def test_uri_default_port(
 def test_uri_missing_host_error(
     driver: model.DriverQuirks,
     driver_path: str,
-    mysql_database: str,
+    singlestore_database: str,
     creds: tuple[str, str],
 ) -> None:
     """Tests that a URI with no host/port raises an error (hostname required)."""
     username, password = creds
 
-    no_host_uri = f"mysql://{username}:{password}@/{mysql_database}"
+    no_host_uri = f"mysql://{username}:{password}@/{singlestore_database}"
 
     with pytest.raises(
         adbc_driver_manager.dbapi.ProgrammingError,
@@ -235,7 +235,7 @@ def test_invalid_uri_format(
     """Tests that a malformed URI raises a helpful error."""
     with pytest.raises(
         adbc_driver_manager.dbapi.ProgrammingError,
-        match="invalid MySQL URI format",
+        match="invalid SingleStore URI format",
     ):
         with adbc_driver_manager.dbapi.connect(
             driver=driver_path,
@@ -249,12 +249,12 @@ def test_unix_socket_parentheses(
     driver: model.DriverQuirks,
     driver_path: str,
     creds: tuple[str, str],
-    mysql_socket_path: str,  # /tmp/mysql.sock
+    singlestore_socket_path: str,  # /tmp/singlestore.sock
 ) -> None:
     """Tests socket connection using mysql://user:pass@(/path/to/socket.sock)/db"""
     username, password = creds
 
-    socket_uri = f"mysql://{username}:{password}@({mysql_socket_path})/db"
+    socket_uri = f"mysql://{username}:{password}@({singlestore_socket_path})/db"
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
@@ -274,7 +274,7 @@ def test_basic_dsn_connection(
     driver_path: str,
     dsn: str,  # Example: my:password@tcp(localhost:3306)/db
 ) -> None:
-    """Test basic connection to MySQL using DSN format."""
+    """Test basic connection to SingleStore using DSN format."""
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
         db_kwargs={"uri": dsn},
@@ -363,12 +363,12 @@ def test_unix_socket_dsn(
     driver: model.DriverQuirks,
     driver_path: str,
     creds: tuple[str, str],
-    mysql_socket_path: str,  # Example: /tmp/mysql.sock
+    singlestore_socket_path: str,  # Example: /tmp/singlestore.sock
 ) -> None:
     """Tests socket connection using native DSN format: user:pass@unix(/path/to/socket.sock)/db"""
     username, password = creds
 
-    socket_dsn = f"{username}:{password}@unix({mysql_socket_path})/db"
+    socket_dsn = f"{username}:{password}@unix({singlestore_socket_path})/db"
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,

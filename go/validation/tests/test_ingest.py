@@ -14,11 +14,11 @@
 
 import adbc_drivers_validation.tests.ingest
 
-from . import mysql
+from . import singlestore
 
 
 def pytest_generate_tests(metafunc) -> None:
-    return adbc_drivers_validation.tests.ingest.generate_tests(mysql.QUIRKS, metafunc)
+    return adbc_drivers_validation.tests.ingest.generate_tests(singlestore.QUIRKS, metafunc)
 
 
 class TestIngest(adbc_drivers_validation.tests.ingest.TestIngest):

@@ -26,14 +26,14 @@ from adbc_drivers_validation.tests.conftest import (  # noqa: F401
     pytest_collection_modifyitems,
 )
 
-from .mysql import MySQLQuirks
+from .singlestore import SingleStoreQuirks
 
 
 @pytest.fixture(scope="session")
 def driver(request) -> adbc_drivers_validation.model.DriverQuirks:
     driver = request.param
-    assert driver.startswith("mysql:")
-    return MySQLQuirks()
+    assert driver.startswith("singlestore:")
+    return SingleStoreQuirks()
 
 
 @pytest.fixture(scope="session")
