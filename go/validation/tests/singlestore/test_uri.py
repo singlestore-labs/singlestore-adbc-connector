@@ -142,7 +142,9 @@ def test_uri_default_port(
     """Tests that a URI without a port connects using default 3306."""
     username, password = creds
 
-    no_port_uri = f"mysql://{username}:{password}@{singlestore_host}/{singlestore_database}"
+    no_port_uri = (
+        f"mysql://{username}:{password}@{singlestore_host}/{singlestore_database}"
+    )
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
