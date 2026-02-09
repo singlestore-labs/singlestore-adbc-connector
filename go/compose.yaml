@@ -14,14 +14,13 @@
 
 services:
   test-service:
-    image: mysql:9.4
+    image: ghcr.io/singlestore-labs/singlestoredb-dev:latest
     environment:
-      MYSQL_ROOT_PASSWORD: "password"
-      MYSQL_DATABASE: db
-      MYSQL_USER: my
-      MYSQL_PASSWORD: password
+      ROOT_PASSWORD: "password"
+      SINGLESTORE_USER: root
+      SINGLESTORE_PASSWORD: password
     healthcheck:
-      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      test: mysqladmin ping -h 127.0.0.1 -u $$SINGLESTORE_USER --password=$$SINGLESTORE_PASSWORD
       interval: 5s
       timeout: 5s
       retries: 10
