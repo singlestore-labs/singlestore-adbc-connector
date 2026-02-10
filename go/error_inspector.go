@@ -18,7 +18,7 @@ import (
 	"errors"
 
 	"github.com/apache/arrow-adbc/go/adbc"
-	"github.com/go-sql-driver/mysql"
+	"github.com/memsql/go-singlestore-driver"
 )
 
 type SingleStoreErrorInspector struct{}

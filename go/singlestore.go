@@ -21,7 +21,7 @@ import (
 	"time"
 
 	// register the "mysql" driver with database/sql
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/memsql/go-singlestore-driver"
 
 	"github.com/adbc-drivers/driverbase-go/driverbase"
 	sqlwrapper "github.com/adbc-drivers/driverbase-go/sqlwrapper"

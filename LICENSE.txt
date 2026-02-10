@@ -1259,9 +1259,9 @@ github.com/go-logr/stdr is under the Apache-2.0 license.
 
 --------------------------------------------------------------------------------
 
-3rdparty dependency github.com/go-sql-driver/mysql
+3rdparty dependency github.com/memsql/go-singlestore-driver
 is statically linked in certain binary distributions, like the Python wheels.
-github.com/go-sql-driver/mysql is under the MPL-2.0 license.
+github.com/memsql/go-singlestore-driver is under the MPL-2.0 license.
 Mozilla Public License Version 2.0
 ==================================
 

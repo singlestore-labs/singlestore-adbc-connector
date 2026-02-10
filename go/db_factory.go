@@ -24,7 +24,7 @@ import (
 
 	"github.com/adbc-drivers/driverbase-go/sqlwrapper"
 	"github.com/apache/arrow-adbc/go/adbc"
-	"github.com/go-sql-driver/mysql"
+	"github.com/memsql/go-singlestore-driver"
 )
 
 // SingleStoreDBFactory provides SingleStore-specific database connection creation.
