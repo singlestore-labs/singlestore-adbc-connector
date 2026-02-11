@@ -188,9 +188,11 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 func (c *singlestoreConnectionImpl) ListTableTypes(ctx context.Context) ([]string, error) {
 	// SingleStore supports these standard table types
 	return []string{
-		"BASE TABLE",  // Regular tables
-		"VIEW",        // Views
-		"SYSTEM VIEW", // System/information schema views
+		"BASE TABLE",             // Regular tables
+		"VIEW",                   // Views
+		"SYSTEM VIEW",            // System/information schema views
+		"TEMPORARY TABLE",        // Session-scoped temporary tables
+		"GLOBAL TEMPORARY TABLE", // Global temporary tables
 	}, nil
 }
 
