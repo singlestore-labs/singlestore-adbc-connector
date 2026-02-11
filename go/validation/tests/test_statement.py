@@ -17,8 +17,8 @@ from adbc_drivers_validation.tests.statement import (
     generate_tests,
 )
 
-from . import mysql
+from . import singlestore
 
 
 def pytest_generate_tests(metafunc) -> None:
-    return generate_tests(mysql.QUIRKS, metafunc)
+    return generate_tests(singlestore.QUIRKS, metafunc)

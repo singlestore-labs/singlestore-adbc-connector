@@ -17,18 +17,18 @@ from pathlib import Path
 
 import adbc_drivers_validation.generate_documentation as generate_documentation
 
-from . import mysql
+from . import singlestore
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
-    template = Path(__file__).parent.parent.parent / "docs/mysql.md"
+    template = Path(__file__).parent.parent.parent / "docs/singlestore.md"
     template = template.resolve()
 
     generate_documentation.generate(
-        mysql.QUIRKS,
+        singlestore.QUIRKS,
         Path("validation-report.xml").resolve(),
         template,
         args.output.resolve(),

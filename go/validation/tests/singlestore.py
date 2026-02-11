@@ -17,12 +17,12 @@ from pathlib import Path
 from adbc_drivers_validation import model, quirks
 
 
-class MySQLQuirks(model.DriverQuirks):
-    name = "mysql"
-    driver = "adbc_driver_mysql"
-    driver_name = "ADBC Driver Foundry Driver for MySQL"
-    vendor_name = "MySQL"
-    vendor_version = "9.4.0 (MySQL Community Server - GPL)"
+class SingleStoreQuirks(model.DriverQuirks):
+    name = "singlestore"
+    driver = "adbc_driver_singlestore"
+    driver_name = "ADBC Driver for SingleStore"
+    vendor_name = "SingleStore"
+    vendor_version = "5.7.32 (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
     short_version = "9.4"
     features = model.DriverFeatures(
         connection_get_table_schema=True,
@@ -37,13 +37,13 @@ class MySQLQuirks(model.DriverQuirks):
         statement_execute_schema=True,
         statement_get_parameter_schema=False,
         statement_rows_affected=True,
-        current_catalog="db",  # MySQL treats databases as catalogs (also JDBC behavior)
+        current_catalog="db",  # SingleStore treats databases as catalogs (also JDBC behavior)
         current_schema="",  # getSchemas() returns empty - no schema concept (also JDBC behavior)
         supported_xdbc_fields=[],
     )
     setup = model.DriverSetup(
         database={
-            "uri": model.FromEnv("MYSQL_DSN"),
+            "uri": model.FromEnv("SINGLESTORE_DSN"),
         },
         connection={},
         statement={},
@@ -77,4 +77,4 @@ class MySQLQuirks(model.DriverQuirks):
         return quirks.split_statement(statement)
 
 
-QUIRKS = [MySQLQuirks()]
+QUIRKS = [SingleStoreQuirks()]

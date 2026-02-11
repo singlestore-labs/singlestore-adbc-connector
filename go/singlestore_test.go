@@ -34,7 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	singlestore "github.com/singlestore-labs/singlestore-adbc-connector"
+	"github.com/singlestore-labs/singlestore-adbc-connector"
 )
 
 // SingleStoreQuirks implements validation.DriverQuirks for SingleStore ADBC driver
@@ -60,7 +60,7 @@ func (q *SingleStoreQuirks) DatabaseOptions() map[string]string {
 
 func (q *SingleStoreQuirks) CreateSampleTable(tableName string, r arrow.RecordBatch) error {
 	// Use standard database/sql to create table directly
-	db, err := sql.Open("singlestore", q.dsn)
+	db, err := sql.Open("mysql", q.dsn)
 	if err != nil {
 		return err
 	}
@@ -251,13 +251,13 @@ func (q *SingleStoreQuirks) DBSchema() string                            { retur
 func (q *SingleStoreQuirks) GetMetadata(code adbc.InfoCode) interface{} {
 	switch code {
 	case adbc.InfoDriverName:
-		return "ADBC Driver Foundry Driver for SingleStore"
+		return "ADBC Driver for SingleStore"
 	case adbc.InfoDriverVersion:
 		return "(unknown or development build)"
 	case adbc.InfoDriverArrowVersion:
 		return "(unknown or development build)"
 	case adbc.InfoVendorVersion:
-		return "9.4.0 (MySQL Community Server - GPL)"
+		return "5.7.32 (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
 	case adbc.InfoVendorArrowVersion:
 		return "(unknown or development build)"
 	case adbc.InfoDriverADBCVersion:
@@ -346,7 +346,7 @@ type selectCase struct {
 func (s *SingleStoreTests) TestSelect() {
 	// Create test table with various SingleStore types including spatial
 	s.NoError(s.stmt.SetSqlQuery(`
-		CREATE TEMPORARY TABLE test_types (
+		CREATE ROWSTORE TEMPORARY TABLE test_types (
 			bool_col TINYINT(1),
 			tinyint_col TINYINT,
 			int_col INT,
@@ -356,9 +356,9 @@ func (s *SingleStoreTests) TestSelect() {
 			varchar_col VARCHAR(100),
 			json_col JSON,
 			enum_col ENUM('active', 'inactive'),
-			point_col POINT,
-			polygon_col POLYGON,
-			geometry_col GEOMETRY,
+			point_col GEOGRAPHYPOINT,
+			polygon_col GEOGRAPHY,
+			geometry_col GEOGRAPHY,
 			bit_col BIT(8)
 		)
 	`))
@@ -370,9 +370,9 @@ func (s *SingleStoreTests) TestSelect() {
 		INSERT INTO test_types VALUES (
 			1, 42, 12345, 9876543210, 3.25, 6.75, 'hello world',
 			'{"key": "value", "number": 42}', 'active',
-			ST_GeomFromText('POINT(1 2)'),
-			ST_GeomFromText('POLYGON((0 0, 0 3, 3 3, 3 0, 0 0))'),
-			ST_GeomFromText('LINESTRING(0 0, 1 1, 2 2)'),
+			'POINT(1 2)',
+			'POLYGON((0 0, 0 3, 3 3, 3 0, 0 0))',
+			'LINESTRING(0 0, 1 1, 2 2)',
 			b'10101010'
 		)
 	`))

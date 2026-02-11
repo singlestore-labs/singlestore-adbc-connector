@@ -283,11 +283,11 @@ func NewDriver(alloc memory.Allocator) adbc.Driver {
 		DefaultTypeConverter: sqlwrapper.DefaultTypeConverter{VendorName: vendorName},
 	}
 
-	driver := sqlwrapper.NewDriver(alloc, "singlestore", vendorName, NewSingleStoreDBFactory(), typeConverter).
+	driver := sqlwrapper.NewDriver(alloc, "mysql", vendorName, NewSingleStoreDBFactory(), typeConverter).
 		WithConnectionFactory(&singlestoreConnectionFactory{}).
 		WithErrorInspector(SingleStoreErrorInspector{})
 	driver.DriverInfo.MustRegister(map[adbc.InfoCode]any{
-		adbc.InfoDriverName:      "ADBC Driver Foundry Driver for SingleStore",
+		adbc.InfoDriverName:      "ADBC Driver for SingleStore",
 		adbc.InfoVendorSql:       true,
 		adbc.InfoVendorSubstrait: false,
 	})
