@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
 
 from adbc_drivers_validation import model, quirks
-import os
 
 
 class SingleStoreQuirks(model.DriverQuirks):
