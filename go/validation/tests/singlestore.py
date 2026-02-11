@@ -17,12 +17,16 @@ from pathlib import Path
 from adbc_drivers_validation import model, quirks
 import os
 
+
 class SingleStoreQuirks(model.DriverQuirks):
     name = "singlestore"
     driver = "adbc_driver_singlestore"
     driver_name = "ADBC Driver for SingleStore"
     vendor_name = "SingleStore"
-    vendor_version = os.getenv("SINGLESTORE_VERSION") + " (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
+    vendor_version = (
+        os.getenv("SINGLESTORE_VERSION")
+        + " (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
+    )
     short_version = "9.4"
     features = model.DriverFeatures(
         connection_get_table_schema=True,
