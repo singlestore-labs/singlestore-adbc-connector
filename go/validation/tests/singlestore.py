@@ -27,7 +27,7 @@ class SingleStoreQuirks(model.DriverQuirks):
         os.getenv("SINGLESTORE_VERSION")
         + " (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
     )
-    short_version = "9.4"
+    short_version = os.getenv("SINGLESTORE_VERSION")
     features = model.DriverFeatures(
         connection_get_table_schema=True,
         connection_transactions=False,
