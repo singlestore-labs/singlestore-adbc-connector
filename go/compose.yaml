@@ -19,6 +19,7 @@ services:
       ROOT_PASSWORD: "password"
       SINGLESTORE_USER: root
       SINGLESTORE_PASSWORD: password
+      SINGLESTORE_VERSION: 9.0.5
     volumes:
       - ./init.sql:/init.sql
     ports:

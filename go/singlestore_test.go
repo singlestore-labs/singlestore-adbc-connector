@@ -257,7 +257,7 @@ func (q *SingleStoreQuirks) GetMetadata(code adbc.InfoCode) interface{} {
 	case adbc.InfoDriverArrowVersion:
 		return "(unknown or development build)"
 	case adbc.InfoVendorVersion:
-		return "5.7.32 (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
+		return os.Getenv("SINGLESTORE_VERSION") + " (SingleStoreDB source distribution (compatible; MySQL Enterprise & MySQL Commercial))"
 	case adbc.InfoVendorArrowVersion:
 		return "(unknown or development build)"
 	case adbc.InfoDriverADBCVersion:
