@@ -24,7 +24,7 @@ require (
 	github.com/apache/arrow-adbc/go/adbc v1.10.0
 	github.com/apache/arrow-go/v18 v18.5.1
 	github.com/go-ext/variant v1.2.4
-	github.com/memsql/go-singlestore-driver v1.9.2-p1
+	github.com/memsql/go-singlestore-driver v1.9.2-p2
 	github.com/stretchr/testify v1.11.1
 )
 
