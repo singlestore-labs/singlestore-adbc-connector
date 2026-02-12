@@ -1,5 +1,5 @@
 ---
-# Copyright (c) 2025-2026 ADBC Drivers Contributors
+# Copyright (c) 2025 ADBC Drivers Contributors
 # Copyright (c) 2026 SingleStore, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
