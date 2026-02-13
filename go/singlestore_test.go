@@ -44,6 +44,10 @@ type SingleStoreQuirks struct {
 	mem *memory.CheckedAllocator
 }
 
+func (q *SingleStoreQuirks) QuoteTableName(tableName string) string {
+	return "`" + strings.Replace(tableName, "`", "``", -1) + "`"
+}
+
 func (q *SingleStoreQuirks) SetupDriver(t *testing.T) adbc.Driver {
 	q.mem = memory.NewCheckedAllocator(memory.DefaultAllocator)
 	return singlestore.NewDriver(q.mem)
@@ -231,21 +235,20 @@ func (q *SingleStoreQuirks) SampleTableSchemaMetadata(tblName string, dt arrow.D
 func (q *SingleStoreQuirks) Alloc() memory.Allocator      { return q.mem }
 func (q *SingleStoreQuirks) BindParameter(idx int) string { return "?" }
 
-// SupportsBulkIngest returns false because SingleStore doesn't support "NULLS LAST" syntax
-// used in the ADBC validation bulk ingest tests.
-// TODO: enable this once the validation framework is fixed.
-// Filed issue: https://github.com/adbc-drivers/driverbase-go/issues/69
-func (q *SingleStoreQuirks) SupportsBulkIngest(string) bool              { return false }
-func (q *SingleStoreQuirks) SupportsConcurrentStatements() bool          { return false }
-func (q *SingleStoreQuirks) SupportsCurrentCatalogSchema() bool          { return true }
-func (q *SingleStoreQuirks) SupportsExecuteSchema() bool                 { return true }
-func (q *SingleStoreQuirks) SupportsGetSetOptions() bool                 { return true }
-func (q *SingleStoreQuirks) SupportsPartitionedData() bool               { return false }
-func (q *SingleStoreQuirks) SupportsStatistics() bool                    { return false }
-func (q *SingleStoreQuirks) SupportsTransactions() bool                  { return false }
-func (q *SingleStoreQuirks) SupportsGetParameterSchema() bool            { return false }
-func (q *SingleStoreQuirks) SupportsDynamicParameterBinding() bool       { return true }
-func (q *SingleStoreQuirks) SupportsErrorIngestIncompatibleSchema() bool { return true }
+func (q *SingleStoreQuirks) SupportsBulkIngest(string) bool        { return true }
+func (q *SingleStoreQuirks) SupportsConcurrentStatements() bool    { return false }
+func (q *SingleStoreQuirks) SupportsCurrentCatalogSchema() bool    { return true }
+func (q *SingleStoreQuirks) SupportsExecuteSchema() bool           { return true }
+func (q *SingleStoreQuirks) SupportsGetSetOptions() bool           { return true }
+func (q *SingleStoreQuirks) SupportsPartitionedData() bool         { return false }
+func (q *SingleStoreQuirks) SupportsStatistics() bool              { return false }
+func (q *SingleStoreQuirks) SupportsTransactions() bool            { return false }
+func (q *SingleStoreQuirks) SupportsGetParameterSchema() bool      { return false }
+func (q *SingleStoreQuirks) SupportsDynamicParameterBinding() bool { return true }
+
+// TODO: enable when error check is fixed
+// https://github.com/adbc-drivers/driverbase-go/pull/123
+func (q *SingleStoreQuirks) SupportsErrorIngestIncompatibleSchema() bool { return false }
 func (q *SingleStoreQuirks) Catalog() string                             { return "db" }
 func (q *SingleStoreQuirks) DBSchema() string                            { return "" }
 
