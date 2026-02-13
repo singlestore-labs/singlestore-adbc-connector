@@ -45,7 +45,7 @@ type SingleStoreQuirks struct {
 }
 
 func (q *SingleStoreQuirks) QuoteTableName(tableName string) string {
-	return "`" + strings.Replace(tableName, "`", "``", -1) + "`"
+	return "`" + strings.ReplaceAll(tableName, "`", "``") + "`"
 }
 
 func (q *SingleStoreQuirks) SetupDriver(t *testing.T) adbc.Driver {
