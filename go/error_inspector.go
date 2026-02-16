@@ -27,10 +27,10 @@ type SingleStoreErrorInspector struct{}
 // InspectError examines a SingleStore error and formats it as an ADBC error
 // mysql error codes: https://www.fromdual.com/mysql-error-codes-and-messages
 func (m SingleStoreErrorInspector) InspectError(err error, defaultStatus adbc.Status) adbc.Error {
-	status := defaultStatus
-
 	var singlestoreErr *mysql.MySQLError
 	if errors.As(err, &singlestoreErr) {
+		status := defaultStatus
+
 		switch singlestoreErr.Number {
 		case 1045: // ER_ACCESS_DENIED_ERROR
 			status = adbc.StatusUnauthenticated
@@ -103,10 +103,17 @@ func (m SingleStoreErrorInspector) InspectError(err error, defaultStatus adbc.St
 				status = adbc.StatusInternal
 			}
 		}
+
+		return adbc.Error{
+			Code:       status,
+			Msg:        err.Error(),
+			VendorCode: int32(singlestoreErr.Number),
+			SqlState:   singlestoreErr.SQLState,
+		}
 	}
 
 	return adbc.Error{
-		Code: status,
+		Code: defaultStatus,
 		Msg:  err.Error(),
 	}
 }
