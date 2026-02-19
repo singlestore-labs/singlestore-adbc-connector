@@ -1,5 +1,5 @@
-filippo.io/edwards25519 v1.1.0 h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=
-filippo.io/edwards25519 v1.1.0/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
+filippo.io/edwards25519 v1.1.1 h1:YpjwWWlNmGIDyXOn8zLzqiD+9TyIlPhGFG96P39uBpw=
+filippo.io/edwards25519 v1.1.1/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 github.com/adbc-drivers/driverbase-go/driverbase v0.0.0-20260205003751-96f1f144143e h1:JUo3AAM/Kk6sDRrolfGXRgxaLdksA0thADLjQ03ISes=
 github.com/adbc-drivers/driverbase-go/driverbase v0.0.0-20260205003751-96f1f144143e/go.mod h1:GbMifodY8nLi/TDF5wNzCjUO0nvDK1w8i5SAGJ8UegQ=
 github.com/adbc-drivers/driverbase-go/sqlwrapper v0.0.0-20260205003751-96f1f144143e h1:2Uvg9fc2u2RF8n7oGlAOZ5XBw3RGvMQSgwN4DUIOjZE=
