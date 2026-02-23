@@ -529,6 +529,134 @@ func (s *SingleStoreTests) TestSelect() {
 			}, nil),
 			expected: `[{"bool_col": 0}, {"bool_col": 1}]`,
 		},
+		{
+			name:  "boolean",
+			query: "SELECT boolean_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "boolean_col",
+					Type:     arrow.PrimitiveTypes.Int8,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "boolean_col",
+						"sql.database_type_name": "TINYINT",
+					}),
+				},
+			}, nil),
+			expected: `[{"boolean_col": 0}, {"boolean_col": 1}]`,
+		},
+		{
+			name:  "bit",
+			query: "SELECT bit_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "bit_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "bit_col",
+						"sql.database_type_name": "BIT",
+					}),
+				},
+			}, nil),
+			expected: `[{"bit_col": "AAAAAAAAAAA="}, {"bit_col": "//////////8="}]`,
+		},
+		{
+			name:  "tinyint",
+			query: "SELECT tinyint_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "tinyint_col",
+					Type:     arrow.PrimitiveTypes.Int8,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "tinyint_col",
+						"sql.database_type_name": "TINYINT",
+					}),
+				},
+			}, nil),
+			expected: `[{"tinyint_col": -128}, {"tinyint_col": 127}]`,
+		},
+		{
+			name:  "mediumint",
+			query: "SELECT mediumint_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "mediumint_col",
+					Type:     arrow.PrimitiveTypes.Int32,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "mediumint_col",
+						"sql.database_type_name": "MEDIUMINT",
+					}),
+				},
+			}, nil),
+			expected: `[{"mediumint_col": -8388608}, {"mediumint_col": 8388607}]`,
+		},
+		{
+			name:  "smallint",
+			query: "SELECT smallint_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "smallint_col",
+					Type:     arrow.PrimitiveTypes.Int16,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "smallint_col",
+						"sql.database_type_name": "SMALLINT",
+					}),
+				},
+			}, nil),
+			expected: `[{"smallint_col": -32768}, {"smallint_col": 32767}]`,
+		},
+		{
+			name:  "int",
+			query: "SELECT int_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "int_col",
+					Type:     arrow.PrimitiveTypes.Int32,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "int_col",
+						"sql.database_type_name": "INT",
+					}),
+				},
+			}, nil),
+			expected: `[{"int_col": -2147483648}, {"int_col": 2147483647}]`,
+		},
+		{
+			name:  "integer",
+			query: "SELECT integer_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "integer_col",
+					Type:     arrow.PrimitiveTypes.Int32,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "integer_col",
+						"sql.database_type_name": "INT",
+					}),
+				},
+			}, nil),
+			expected: `[{"integer_col": -2147483648}, {"integer_col": 2147483647}]`,
+		},
+		{
+			name:  "bigint",
+			query: "SELECT bigint_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "bigint_col",
+					Type:     arrow.PrimitiveTypes.Int64,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "bigint_col",
+						"sql.database_type_name": "BIGINT",
+					}),
+				},
+			}, nil),
+			expected: `[{"bigint_col": -9223372036854775808}, {"bigint_col": 9000000000000000000}]`,
+		},
 	} {
 		s.Run(testCase.name, func() {
 			s.NoError(s.stmt.SetSqlQuery(testCase.query))
