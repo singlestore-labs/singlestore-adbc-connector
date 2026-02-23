@@ -389,7 +389,7 @@ func (s *SingleStoreTests) TestSelect() {
 		  tinyblob_col TINYBLOB,
 		  json_col JSON,
 		  bson_col BSON,
-		  enum_col ENUM('active', 'inactive'),	
+		  enum_col ENUM('active', 'inactive'),
 		  set_col SET('a', 'b', 'c'),
 		  geography_col GEOGRAPHY,
 		  geographypoint_col GEOGRAPHYPOINT,
