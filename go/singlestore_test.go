@@ -29,7 +29,6 @@ import (
 	"github.com/apache/arrow-adbc/go/adbc"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
-	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -351,19 +350,55 @@ func (s *SingleStoreTests) TestSelect() {
 	// Create test table with various SingleStore types including spatial
 	s.NoError(s.stmt.SetSqlQuery(`
 		CREATE ROWSTORE TEMPORARY TABLE test_types (
-			bool_col TINYINT(1),
-			tinyint_col TINYINT,
-			int_col INT,
-			bigint_col BIGINT,
-			float_col FLOAT,
-			double_col DOUBLE,
-			varchar_col VARCHAR(100),
-			json_col JSON,
-			enum_col ENUM('active', 'inactive'),
-			point_col GEOGRAPHYPOINT,
-			polygon_col GEOGRAPHY,
-			geometry_col GEOGRAPHY,
-			bit_col BIT(8)
+		  id int PRIMARY KEY,
+		  bool_col BOOL,
+		  boolean_col BOOLEAN,
+		  bit_col BIT(64),
+		  tinyint_col TINYINT,
+		  mediumint_col MEDIUMINT,
+		  smallint_col SMALLINT,
+		  int_col INT,
+		  integer_col INTEGER,
+		  bigint_col BIGINT,
+		  float_col FLOAT,
+		  double_col DOUBLE,
+		  real_col REAL,
+		  date_col DATE,
+		  time_col TIME,
+		  time6_col TIME(6),
+		  datetime_col DATETIME,
+		  datetime6_col DATETIME(6),
+		  timestamp_col TIMESTAMP,
+		  timestamp6_col TIMESTAMP(6),
+		  year_col YEAR,
+		  decimal_col DECIMAL(65, 30),
+		  dec_col DEC,
+		  fixed_col FIXED,
+		  numeric_col NUMERIC,
+		  char_col CHAR,
+		  mediumtext_col MEDIUMTEXT,
+		  binary_col BINARY,
+		  varchar_col VARCHAR(100),
+		  varbinary_col VARBINARY(100),
+		  longtext_col LONGTEXT,
+		  text_col TEXT,
+		  tinytext_col TINYTEXT,
+		  longblob_col LONGBLOB,
+		  mediumblob_col MEDIUMBLOB,
+		  blob_col BLOB,
+		  tinyblob_col TINYBLOB,
+		  json_col JSON,
+		  bson_col BSON,
+		  enum_col ENUM('active', 'inactive'),
+		  set_col SET('a', 'b', 'c'),
+		  geography_col GEOGRAPHY,
+		  geographypoint_col GEOGRAPHYPOINT,
+		  vector_i8_col VECTOR(2, I8),
+		  vector_i16_col VECTOR(2, I16),
+		  vector_i32_col VECTOR(2, I32),
+		  vector_i64_col VECTOR(2, I64),
+		  vector_f32_col VECTOR(2, F32),
+		  vector_f64_col VECTOR(2, F64)
 		)
 	`))
 	_, err := s.stmt.ExecuteUpdate(s.ctx)
@@ -372,12 +407,106 @@ func (s *SingleStoreTests) TestSelect() {
 	// Insert test data including spatial data
 	s.NoError(s.stmt.SetSqlQuery(`
 		INSERT INTO test_types VALUES (
-			1, 42, 12345, 9876543210, 3.25, 6.75, 'hello world',
-			'{"key": "value", "number": 42}', 'active',
-			'POINT(1 2)',
-			'POLYGON((0 0, 0 3, 3 3, 3 0, 0 0))',
-			'LINESTRING(0 0, 1 1, 2 2)',
-			b'10101010'
+		  1,                          -- id
+		  0,                          -- bool_col
+		  0,                          -- boolean_col
+		  0,                          -- bit_col
+		  -128,                       -- tinyint_col
+		  -8388608,                   -- mediumint_col
+		  -32768,                     -- smallint_col
+		  -2147483648,                -- int_col
+		  -2147483648,                -- integer_col
+		  -9223372036854775808,       -- bigint_col
+		  -3.402823466E+38,           -- float_col
+		  -1.7976931348623157E+308,   -- double_col
+		  -1.7976931348623157E+308,   -- real_col
+		  '1000-01-01',               -- date_col
+		  '-838:59:59',               -- time_col
+		  '-838:59:59.000000',        -- time6_col
+		  '1000-01-01 00:00:00',      -- datetime_col
+		  '1000-01-01 00:00:00.000000', -- datetime6_col
+		  '1970-01-01 00:00:01',      -- timestamp_col
+		  '1970-01-01 00:00:01.000000', -- timestamp6_col
+		  1901,                       -- year_col
+		  '-99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col
+		  -9999999999,                -- dec_col
+		  -9999999999,                -- fixed_col
+		  -9999999999,                -- numeric_col
+		  '',                         -- char_col
+		  '',                         -- mediumtext_col
+		  0x00,                       -- binary_col
+		  '',                         -- varchar_col
+		  0x00,                       -- varbinary_col
+		  '',                         -- longtext_col
+		  '',                         -- text_col
+		  '',                         -- tinytext_col
+		  0x00,                       -- longblob_col
+		  0x00,                       -- mediumblob_col
+		  0x00,                       -- blob_col
+		  0x00,                       -- tinyblob_col
+		  '{}',                       -- json_col
+		  '{}',                       -- bson_col
+		  'active',                   -- enum_col
+		  '',                         -- set_col
+		  NULL,                       -- geography_col
+		  NULL,                       -- geographypoint_col
+		  '[-128, -128]',         -- vector_i8_col
+		  '[-32768, -32768]',     -- vector_i16_col
+		  '[-2147483648, -2147483648]', -- vector_i32_col
+		  '[-9223372036854775808, -9223372036854775808]', -- vector_i64_col
+		  '[-3.402823466E+38, -3.402823466E+38]', -- vector_f32_col
+		  '[-1.7976931348623157E+308, -1.7976931348623157E+308]' -- vector_f64_col
+		),
+		(
+		  2,                          -- id
+		  1,                          -- bool_col
+		  1,                          -- boolean_col
+		  18446744073709551615,       -- bit_col
+		  127,                        -- tinyint_col
+		  8388607,                    -- mediumint_col
+		  32767,                      -- smallint_col
+		  2147483647,                 -- int_col
+		  2147483647,                 -- integer_col
+		  9000000000000000000,        -- bigint_col
+		  3.402823466E+38,            -- float_col
+		  1.7976931348623157E+308,    -- double_col
+		  1.7976931348623157E+308,    -- real_col
+		  '9999-12-31',               -- date_col
+		  '838:59:59',                -- time_col
+		  '838:59:59.999999',         -- time6_col
+		  '9999-12-31 23:59:59',      -- datetime_col
+		  '9999-12-31 23:59:59.999999', -- datetime6_col
+		  '2038-01-19 03:14:07',      -- timestamp_col
+		  '2038-01-19 03:14:07.999999', -- timestamp6_col
+		  2155,                       -- year_col
+		  '99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col
+		  9999999999,                 -- dec_col
+		  9999999999,                 -- fixed_col
+		  9999999999,                 -- numeric_col
+		  'Z',                        -- char_col (single character)
+		  'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', -- mediumtext_col (example long string)
+		  0xFF,                       -- binary_col (max byte value)
+		  'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', -- varchar_col (100 chars)
+		  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, -- varbinary_col (100 bytes)
+		  'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', -- longtext_col (example string)
+		  'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', -- text_col (example string)
+		  'ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ', -- tinytext_col (example string)
+		  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, -- longblob_col (example binary)
+		  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, -- mediumblob_col (example binary)
+		  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, -- blob_col (example binary)
+		  0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF, -- tinyblob_col (example binary)
+		  '{"key":"value"}',          -- json_col
+		  '{"key":"value"}',          -- bson_col
+		  'inactive',                 -- enum_col
+		  'a,b,c',                    -- set_col
+		  'POLYGON((0 0, 0 1, 1 1, 0 0))', -- geographypoint_col
+		  'POINT(-74.044514 40.689244)', -- geography_col
+		  '[127, 127]',           -- vector_i8_col
+		  '[32767, 32767]',       -- vector_i16_col
+		  '[2147483647, 2147483647]', -- vector_i32_col
+		  '[9223372036854775807, 9223372036854775807]', -- vector_i64_col
+		  '[3.402823466E+38, 3.402823466E+38]', -- vector_f32_col
+		  '[1.7976931348623157E+308, 1.7976931348623157E+308]' -- vector_f64_col
 		)
 	`))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
@@ -385,220 +514,20 @@ func (s *SingleStoreTests) TestSelect() {
 
 	for _, testCase := range []selectCase{
 		{
-			name:  "boolean",
-			query: "SELECT bool_col AS istrue FROM test_types",
+			name:  "bool",
+			query: "SELECT bool_col FROM test_types ORDER BY id",
 			schema: arrow.NewSchema([]arrow.Field{
 				{
-					Name:     "istrue",
+					Name:     "bool_col",
 					Type:     arrow.PrimitiveTypes.Int8,
 					Nullable: true,
 					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "istrue",
+						"sql.column_name":        "bool_col",
 						"sql.database_type_name": "TINYINT",
 					}),
 				},
 			}, nil),
-			expected: `[{"istrue": 1}]`,
-		},
-		{
-			name:  "tinyint",
-			query: "SELECT tinyint_col AS value FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "value",
-					Type:     arrow.PrimitiveTypes.Int8,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "value",
-						"sql.database_type_name": "TINYINT",
-					}),
-				},
-			}, nil),
-			expected: `[{"value": 42}]`,
-		},
-		{
-			name:  "int32",
-			query: "SELECT int_col AS theanswer FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "theanswer",
-					Type:     arrow.PrimitiveTypes.Int32,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "theanswer",
-						"sql.database_type_name": "INT",
-					}),
-				},
-			}, nil),
-			expected: `[{"theanswer": 12345}]`,
-		},
-		{
-			name:  "int64",
-			query: "SELECT bigint_col AS theanswer FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "theanswer",
-					Type:     arrow.PrimitiveTypes.Int64,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "theanswer",
-						"sql.database_type_name": "BIGINT",
-					}),
-				},
-			}, nil),
-			expected: `[{"theanswer": 9876543210}]`,
-		},
-		{
-			name:  "float32",
-			query: "SELECT float_col AS value FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "value",
-					Type:     arrow.PrimitiveTypes.Float32,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "value",
-						"sql.database_type_name": "FLOAT",
-						"sql.precision":          "9223372036854775807",
-						"sql.scale":              "9223372036854775807",
-					}),
-				},
-			}, nil),
-			expected: `[{"value": 3.25}]`,
-		},
-		{
-			name:  "float64",
-			query: "SELECT double_col AS value FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "value",
-					Type:     arrow.PrimitiveTypes.Float64,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "value",
-						"sql.database_type_name": "DOUBLE",
-						"sql.precision":          "9223372036854775807",
-						"sql.scale":              "9223372036854775807",
-					}),
-				},
-			}, nil),
-			expected: `[{"value": 6.75}]`,
-		},
-		{
-			name:  "string",
-			query: "SELECT varchar_col AS greeting FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "greeting",
-					Type:     arrow.BinaryTypes.String,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "greeting",
-						"sql.database_type_name": "VARCHAR",
-					}),
-				},
-			}, nil),
-			expected: `[{"greeting": "hello world"}]`,
-		},
-		{
-			name:  "json",
-			query: "SELECT json_col AS data FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "data",
-					Type:     func() arrow.DataType { t, _ := extensions.NewJSONType(arrow.BinaryTypes.String); return t }(),
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "data",
-						"sql.database_type_name": "JSON",
-					}),
-				},
-			}, nil),
-			expected: `[{"data": "{\"key\": \"value\", \"number\": 42}"}]`,
-		},
-		{
-			name:  "enum",
-			query: "SELECT enum_col AS status FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "status",
-					Type:     arrow.BinaryTypes.String,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":         "status",
-						"sql.database_type_name":  "ENUM",
-						"singlestore.is_enum_set": "true",
-					}),
-				},
-			}, nil),
-			expected: `[{"status": "active"}]`,
-		},
-		{
-			name:  "point",
-			query: "SELECT point_col AS location FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "location",
-					Type:     arrow.BinaryTypes.Binary,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "location",
-						"sql.database_type_name": "GEOMETRY",
-						"singlestore.is_spatial": "true",
-					}),
-				},
-			}, nil),
-			expected: `[{"location": "AAAAAAEBAAAAAAAAAAAA8D8AAAAAAAAAQA=="}]`,
-		},
-		{
-			name:  "polygon",
-			query: "SELECT polygon_col AS area FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "area",
-					Type:     arrow.BinaryTypes.Binary,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "area",
-						"sql.database_type_name": "GEOMETRY",
-						"singlestore.is_spatial": "true",
-					}),
-				},
-			}, nil),
-			expected: `[{"area": "AAAAAAEDAAAAAQAAAAUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIQAAAAAAAAAhAAAAAAAAACEAAAAAAAAAIQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="}]`,
-		},
-		{
-			name:  "geometry",
-			query: "SELECT geometry_col AS shape FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "shape",
-					Type:     arrow.BinaryTypes.Binary,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "shape",
-						"sql.database_type_name": "GEOMETRY",
-						"singlestore.is_spatial": "true",
-					}),
-				},
-			}, nil),
-			expected: `[{"shape": "AAAAAAECAAAAAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwPwAAAAAAAPA/AAAAAAAAAEAAAAAAAAAAQA=="}]`,
-		},
-		{
-			name:  "bit8",
-			query: "SELECT bit_col AS bitvalue FROM test_types",
-			schema: arrow.NewSchema([]arrow.Field{
-				{
-					Name:     "bitvalue",
-					Type:     arrow.BinaryTypes.Binary,
-					Nullable: true,
-					Metadata: arrow.MetadataFrom(map[string]string{
-						"sql.column_name":        "bitvalue",
-						"sql.database_type_name": "BIT",
-					}),
-				},
-			}, nil),
-			expected: `[{"bitvalue": "qg=="}]`,
+			expected: `[{"bool_col": 0}, {"bool_col": 1}]`,
 		},
 	} {
 		s.Run(testCase.name, func() {
