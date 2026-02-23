@@ -450,8 +450,8 @@ func (s *SingleStoreTests) TestSelect() {
 		  '',                         -- set_col
 		  NULL,                       -- geography_col
 		  NULL,                       -- geographypoint_col
-		  '[-32768, -32768]',         -- vector_i8_col
-		  '[-8388608, -8388608]',     -- vector_i16_col
+		  '[-128, -128]',         -- vector_i8_col
+		  '[-32768, -32768]',     -- vector_i16_col
 		  '[-2147483648, -2147483648]', -- vector_i32_col
 		  '[-9223372036854775808, -9223372036854775808]', -- vector_i64_col
 		  '[-3.402823466E+38, -3.402823466E+38]', -- vector_f32_col
@@ -499,10 +499,10 @@ func (s *SingleStoreTests) TestSelect() {
 		  '{"key":"value"}',          -- bson_col
 		  'inactive',                 -- enum_col
 		  'a,b,c',                    -- set_col
-		  'POINT(-74.044514 40.689244)', -- geography_col
 		  'POLYGON((0 0, 0 1, 1 1, 0 0))', -- geographypoint_col
-		  '[32767, 32767]',           -- vector_i8_col
-		  '[8388607, 8388607]',       -- vector_i16_col
+		  'POINT(-74.044514 40.689244)', -- geography_col
+		  '[127, 127]',           -- vector_i8_col
+		  '[32767, 32767]',       -- vector_i16_col
 		  '[2147483647, 2147483647]', -- vector_i32_col
 		  '[9223372036854775807, 9223372036854775807]', -- vector_i64_col
 		  '[3.402823466E+38, 3.402823466E+38]', -- vector_f32_col
