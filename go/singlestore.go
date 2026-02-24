@@ -50,8 +50,8 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 	case "BIT":
 		// Handle BIT type as binary data
 		metadataMap := map[string]string{
-			"sql.database_type_name": colType.DatabaseTypeName,
-			"sql.column_name":        colType.Name,
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
 		}
 
 		if colType.Length != nil {
@@ -65,18 +65,18 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		// Convert SingleStore spatial types to binary with spatial metadata
 		// TODO: we should use geoarrow extension types if applicable
 		metadata := arrow.MetadataFrom(map[string]string{
-			"sql.database_type_name": colType.DatabaseTypeName,
-			"sql.column_name":        colType.Name,
-			"singlestore.is_spatial": "true",
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+			"singlestore.is_spatial":           "true",
 		})
 		return arrow.BinaryTypes.Binary, nullable, metadata, nil
 
 	case "ENUM", "SET":
 		// Handle ENUM/SET as string with special metadata
 		metadataMap := map[string]string{
-			"sql.database_type_name":  colType.DatabaseTypeName,
-			"sql.column_name":         colType.Name,
-			"singlestore.is_enum_set": "true",
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+			"singlestore.is_enum_set":          "true",
 		}
 
 		if colType.Length != nil {
@@ -158,6 +158,24 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		}
 
 		return m.DefaultTypeConverter.ConvertRawColumnType(colType)
+
+	case "LONGBLOB":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+		metadata := arrow.MetadataFrom(metadataMap)
+
+		return arrow.BinaryTypes.LargeBinary, nullable, metadata, nil
+
+	case "LONGTEXT":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+		metadata := arrow.MetadataFrom(metadataMap)
+
+		return arrow.BinaryTypes.LargeString, nullable, metadata, nil
 
 	default:
 		// Fall back to default conversion for standard types
