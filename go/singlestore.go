@@ -17,12 +17,11 @@ package singlestore
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
-
-	// register the "mysql" driver with database/sql
-	_ "github.com/memsql/go-singlestore-driver"
 
 	"github.com/adbc-drivers/driverbase-go/driverbase"
 	sqlwrapper "github.com/adbc-drivers/driverbase-go/sqlwrapper"
@@ -32,6 +31,8 @@ import (
 	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/go-ext/variant"
+	// register the "mysql" driver with database/sql
+	_ "github.com/memsql/go-singlestore-driver"
 )
 
 // singlestoreTypeConverter provides SingleStore-specific type conversion enhancements
@@ -113,8 +114,17 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
 			sqlwrapper.MetaKeyColumnName:       colType.Name,
 		}
-		metadata := arrow.MetadataFrom(metadataMap)
 
+		metadata := arrow.MetadataFrom(metadataMap)
+		return arrow.PrimitiveTypes.Int16, nullable, metadata, nil
+
+	case "YEAR":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+
+		metadata := arrow.MetadataFrom(metadataMap)
 		return arrow.PrimitiveTypes.Float32, nullable, metadata, nil
 
 	case "DOUBLE":
@@ -172,6 +182,12 @@ func (m *singlestoreTypeConverter) CreateInserter(field *arrow.Field, builder ar
 		}
 		// Fall through to default for non-spatial binary
 		return m.DefaultTypeConverter.CreateInserter(field, builder)
+	// Time types
+	case *arrow.Time32Type:
+		return &singlestoreTime32Inserter{builder: builder.(*array.Time32Builder)}, nil
+	case *arrow.Time64Type:
+		return &singlestoreTime64Inserter{builder: builder.(*array.Time64Builder)}, nil
+
 	default:
 		// For all other types, use default inserter
 		return m.DefaultTypeConverter.CreateInserter(field, builder)
@@ -179,6 +195,203 @@ func (m *singlestoreTypeConverter) CreateInserter(field *arrow.Field, builder ar
 }
 
 // SingleStore-specific inserters
+type singlestoreTime64Inserter struct {
+	builder *array.Time64Builder
+}
+
+func (ins *singlestoreTime64Inserter) AppendValue(sqlValue any) error {
+	unwrapped, err := unwrap(sqlValue)
+	if err != nil {
+		return err
+	}
+	if unwrapped == nil {
+		ins.builder.AppendNull()
+		return nil
+	}
+
+	timeType := ins.builder.Type().(*arrow.Time64Type)
+	if timeType.Unit != arrow.Microsecond {
+		return fmt.Errorf("unsupported Time64 unit: %v", timeType.Unit)
+	}
+
+	val, err := convertToTime64(unwrapped)
+	if err != nil {
+		return err
+	}
+	ins.builder.Append(val)
+	return nil
+}
+
+// convertToTime64 converts a SQL value to arrow.Time64 type
+func convertToTime64(val any) (arrow.Time64, error) {
+	switch v := val.(type) {
+	case time.Time:
+		return arrow.Time64(int64(v.Hour())*3600000000 + int64(v.Minute()*60000000) + int64(v.Second()*1000000) + int64(v.Nanosecond())/1000), nil
+	case []byte:
+		return time64FromString(string(v))
+	case string:
+		return time64FromString(v)
+	default:
+		return 0, fmt.Errorf("cannot convert %T to Time64, expected time.Time", val)
+	}
+}
+
+func time64FromString(timeStr string) (arrow.Time64, error) {
+	isNegative := false
+
+	// Handle the negative sign
+	if strings.HasPrefix(timeStr, "-") {
+		isNegative = true
+		timeStr = strings.TrimPrefix(timeStr, "-")
+	}
+
+	// Split into HH, MM, and SS.FFFFFF
+	parts := strings.Split(timeStr, ":")
+	if len(parts) != 3 {
+		return 0, fmt.Errorf("invalid time format: expected HH:MM:SS[.frac], got %s", timeStr)
+	}
+
+	hours, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing hours: %w", err)
+	}
+
+	minutes, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing minutes: %w", err)
+	}
+
+	// Separate seconds from fractional microseconds
+	secParts := strings.Split(parts[2], ".")
+	seconds, err := strconv.ParseInt(secParts[0], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing seconds: %w", err)
+	}
+
+	var microseconds int64 = 0
+
+	// Handle the fractional part if it exists
+	if len(secParts) > 1 {
+		fractionStr := secParts[1]
+
+		// SingleStore supports up to 6 digits (microseconds).
+		// We must pad the string with zeros on the right so ".7" becomes "700000".
+		if len(fractionStr) > 6 {
+			fractionStr = fractionStr[:6] // Truncate to 6 digits if it's too long
+		} else if len(fractionStr) < 6 {
+			fractionStr = fractionStr + strings.Repeat("0", 6-len(fractionStr))
+		}
+
+		microseconds, err = strconv.ParseInt(fractionStr, 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("error parsing microseconds: %w", err)
+		}
+	}
+
+	// Calculate total microseconds
+	totalMicroseconds := (hours * 3600000000) +
+		(minutes * 60000000) +
+		(seconds * 1000000) +
+		microseconds
+
+	// Reapply negative sign
+	if isNegative {
+		totalMicroseconds = -totalMicroseconds
+	}
+
+	return arrow.Time64(totalMicroseconds), nil
+}
+
+type singlestoreTime32Inserter struct {
+	builder *array.Time32Builder
+}
+
+func (ins *singlestoreTime32Inserter) AppendValue(sqlValue any) error {
+	unwrapped, err := unwrap(sqlValue)
+	if err != nil {
+		return err
+	}
+	if unwrapped == nil {
+		ins.builder.AppendNull()
+		return nil
+	}
+
+	timeType := ins.builder.Type().(*arrow.Time32Type)
+	if timeType.Unit != arrow.Second {
+		return fmt.Errorf("unsupported Time32 unit: %v", timeType.Unit)
+	}
+
+	val, err := convertToTime32(unwrapped)
+	if err != nil {
+		return err
+	}
+	ins.builder.Append(val)
+	return nil
+}
+
+func unwrap(val any) (any, error) {
+	if v, ok := val.(driver.Valuer); ok {
+		return v.Value()
+	}
+	return val, nil
+}
+
+// convertToTime32 converts a SQL value to arrow.Time32 type
+func convertToTime32(val any) (arrow.Time32, error) {
+	switch v := val.(type) {
+	case time.Time:
+		return arrow.Time32(v.Hour()*3600 + v.Minute()*60 + v.Second()), nil
+	case []byte:
+		return time32FromString(string(v))
+	case string:
+		return time32FromString(v)
+	default:
+		return 0, fmt.Errorf("cannot convert %T to Time32, expected time.Time", val)
+	}
+}
+
+func time32FromString(timeStr string) (arrow.Time32, error) {
+	isNegative := false
+
+	// Check for and remove the negative sign
+	if strings.HasPrefix(timeStr, "-") {
+		isNegative = true
+		timeStr = strings.TrimPrefix(timeStr, "-")
+	}
+
+	// Split the string into Hours, Minutes, and Seconds
+	parts := strings.Split(timeStr, ":")
+	if len(parts) != 3 {
+		return 0, fmt.Errorf("invalid time format: expected HH:MM:SS, got %s", timeStr)
+	}
+
+	// Parse each part into an int64
+	hours, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing hours: %w", err)
+	}
+
+	minutes, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing minutes: %w", err)
+	}
+
+	seconds, err := strconv.ParseInt(parts[2], 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("error parsing seconds: %w", err)
+	}
+
+	// Calculate total seconds (Hours * 3600 + Minutes * 60 + Seconds)
+	totalSeconds := (hours * 3600) + (minutes * 60) + seconds
+
+	// Reapply the negative sign if the original string was negative
+	if isNegative {
+		totalSeconds = -totalSeconds
+	}
+
+	return arrow.Time32(totalSeconds), nil
+}
+
 type singlestoreJSONInserter struct {
 	builder array.Builder
 }
