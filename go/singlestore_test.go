@@ -995,6 +995,198 @@ func (s *SingleStoreTests) TestSelect() {
 			}, nil),
 			expected: `[{"year_col": 1901}, {"year_col": 2155}]`,
 		},
+		{
+			name:  "char",
+			query: "SELECT char_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "char_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "char_col",
+						"sql.database_type_name": "CHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"char_col": ""}, {"char_col": "Z"}]`,
+		},
+		{
+			name:  "mediumtext",
+			query: "SELECT mediumtext_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "mediumtext_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "mediumtext_col",
+						"sql.database_type_name": "MEDIUMTEXT",
+					}),
+				},
+			}, nil),
+			expected: `[{"mediumtext_col": ""}, {"mediumtext_col": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]`,
+		},
+		{
+			name:  "binary",
+			query: "SELECT binary_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "binary_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "binary_col",
+						"sql.database_type_name": "BINARY",
+					}),
+				},
+			}, nil),
+			expected: `[{"binary_col": "AA=="}, {"binary_col": "/w=="}]`,
+		},
+		{
+			name:  "varchar",
+			query: "SELECT varchar_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "varchar_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "varchar_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"varchar_col": ""}, {"varchar_col": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]`,
+		},
+		{
+			name:  "varbinary",
+			query: "SELECT varbinary_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "varbinary_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "varbinary_col",
+						"sql.database_type_name": "VARBINARY",
+					}),
+				},
+			}, nil),
+			expected: `[{"varbinary_col": "AA=="}, {"varbinary_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
+		{
+			name:  "longtext",
+			query: "SELECT longtext_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "longtext_col",
+					Type:     arrow.BinaryTypes.LargeString,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "longtext_col",
+						"sql.database_type_name": "LONGTEXT",
+					}),
+				},
+			}, nil),
+			expected: `[{"longtext_col": ""}, {"longtext_col": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]`,
+		},
+		{
+			name:  "text",
+			query: "SELECT text_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "text_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "text_col",
+						"sql.database_type_name": "TEXT",
+					}),
+				},
+			}, nil),
+			expected: `[{"text_col": ""}, {"text_col": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]`,
+		},
+		{
+			name:  "tinytext",
+			query: "SELECT tinytext_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "tinytext_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "tinytext_col",
+						"sql.database_type_name": "TINYTEXT",
+					}),
+				},
+			}, nil),
+			expected: `[{"tinytext_col": ""}, {"tinytext_col": "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"}]`,
+		},
+		{
+			name:  "longblob",
+			query: "SELECT longblob_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "longblob_col",
+					Type:     arrow.BinaryTypes.LargeBinary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "longblob_col",
+						"sql.database_type_name": "LONGBLOB",
+					}),
+				},
+			}, nil),
+			expected: `[{"longblob_col": "AA=="}, {"longblob_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
+		{
+			name:  "mediumblob",
+			query: "SELECT mediumblob_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "mediumblob_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "mediumblob_col",
+						"sql.database_type_name": "MEDIUMBLOB",
+					}),
+				},
+			}, nil),
+			expected: `[{"mediumblob_col": "AA=="}, {"mediumblob_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
+		{
+			name:  "blob",
+			query: "SELECT blob_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "blob_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "blob_col",
+						"sql.database_type_name": "BLOB",
+					}),
+				},
+			}, nil),
+			expected: `[{"blob_col": "AA=="}, {"blob_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
+		{
+			name:  "tinyblob",
+			query: "SELECT tinyblob_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "tinyblob_col",
+					Type:     arrow.BinaryTypes.Binary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "tinyblob_col",
+						"sql.database_type_name": "TINYBLOB",
+					}),
+				},
+			}, nil),
+			expected: `[{"tinyblob_col": "AA=="}, {"tinyblob_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
 	} {
 		s.Run(testCase.name, func() {
 			s.NoError(s.stmt.SetSqlQuery(testCase.query))
