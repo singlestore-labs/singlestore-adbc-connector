@@ -371,10 +371,14 @@ func (s *SingleStoreTests) TestSelect() {
 		  timestamp_col TIMESTAMP,
 		  timestamp6_col TIMESTAMP(6),
 		  year_col YEAR,
-		  decimal_col DECIMAL(65, 30),
-		  dec_col DEC,
-		  fixed_col FIXED,
-		  numeric_col NUMERIC,
+		  decimal_col1 DECIMAL(65, 30),
+		  decimal_col2 DECIMAL(38, 10),
+		  decimal_col3 DECIMAL(18, 10),
+		  decimal_col4 DECIMAL(9, 5),
+		  decimal_col5 DECIMAL(18, 0),
+		  dec_col DEC(20, 0),
+		  fixed_col FIXED(20, 0),
+		  numeric_col NUMERIC(20, 0),
 		  char_col CHAR,
 		  mediumtext_col MEDIUMTEXT,
 		  binary_col BINARY,
@@ -417,7 +421,7 @@ func (s *SingleStoreTests) TestSelect() {
 		  -2147483648,                -- int_col
 		  -2147483648,                -- integer_col
 		  -9223372036854775808,       -- bigint_col
-		  -3.402823466E+38,           -- float_col
+		  -3.402E+38,           -- float_col
 		  -1.7976931348623157E+308,   -- double_col
 		  -1.7976931348623157E+308,   -- real_col
 		  '1000-01-01',               -- date_col
@@ -428,7 +432,11 @@ func (s *SingleStoreTests) TestSelect() {
 		  '1970-01-01 00:00:01',      -- timestamp_col
 		  '1970-01-01 00:00:01.000000', -- timestamp6_col
 		  1901,                       -- year_col
-		  '-99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col
+		  '-99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col1
+		  '-9999999999999999999999999999.9999999999', -- decimal_col2
+		  '-99999999.9999999999',     -- decimal_col3
+		  '-9999.99999',              -- decimal_col4
+		  '-999999999999999999',      -- decimal_col5
 		  -9999999999,                -- dec_col
 		  -9999999999,                -- fixed_col
 		  -9999999999,                -- numeric_col
@@ -468,7 +476,7 @@ func (s *SingleStoreTests) TestSelect() {
 		  2147483647,                 -- int_col
 		  2147483647,                 -- integer_col
 		  9000000000000000000,        -- bigint_col
-		  3.402823466E+38,            -- float_col
+		  3.402E+38,            -- float_col
 		  1.7976931348623157E+308,    -- double_col
 		  1.7976931348623157E+308,    -- real_col
 		  '9999-12-31',               -- date_col
@@ -479,7 +487,11 @@ func (s *SingleStoreTests) TestSelect() {
 		  '2038-01-19 03:14:07',      -- timestamp_col
 		  '2038-01-19 03:14:07.999999', -- timestamp6_col
 		  2155,                       -- year_col
-		  '99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col
+		  '99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col1
+		  '9999999999999999999999999999.9999999999', -- decimal_col2
+		  '99999999.9999999999',      -- decimal_col3
+		  '9999.99999',               -- decimal_col4
+		  '999999999999999999',       -- decimal_col5
 		  9999999999,                 -- dec_col
 		  9999999999,                 -- fixed_col
 		  9999999999,                 -- numeric_col
@@ -656,6 +668,198 @@ func (s *SingleStoreTests) TestSelect() {
 				},
 			}, nil),
 			expected: `[{"bigint_col": -9223372036854775808}, {"bigint_col": 9000000000000000000}]`,
+		},
+		{
+			name:  "float",
+			query: "SELECT float_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "float_col",
+					Type:     arrow.PrimitiveTypes.Float32,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "float_col",
+						"sql.database_type_name": "FLOAT",
+					}),
+				},
+			}, nil),
+			expected: `[{"float_col": -3.402e+38}, {"float_col": 3.402e+38}]`,
+		},
+		{
+			name:  "double",
+			query: "SELECT double_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "double_col",
+					Type:     arrow.PrimitiveTypes.Float64,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "double_col",
+						"sql.database_type_name": "DOUBLE",
+					}),
+				},
+			}, nil),
+			expected: `[{"double_col": -1.7976931348623157e+308}, {"double_col": 1.7976931348623157e+308}]`,
+		},
+		{
+			name:  "real",
+			query: "SELECT real_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "real_col",
+					Type:     arrow.PrimitiveTypes.Float64,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "real_col",
+						"sql.database_type_name": "DOUBLE",
+					}),
+				},
+			}, nil),
+			expected: `[{"real_col": -1.7976931348623157e+308}, {"real_col": 1.7976931348623157e+308}]`,
+		},
+		{
+			name:  "decimal1",
+			query: "SELECT decimal_col1 FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "decimal_col1",
+					Type:     &arrow.Decimal256Type{Precision: 65, Scale: 30},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "decimal_col1",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "65",
+						"sql.scale":              "30",
+					}),
+				},
+			}, nil),
+			expected: `[{"decimal_col1": "-99999999999999999999999999999999999.999999999999999999999999999999"}, {"decimal_col1": "99999999999999999999999999999999999.999999999999999999999999999999"}]`,
+		},
+		{
+			name:  "decimal2",
+			query: "SELECT decimal_col2 FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "decimal_col2",
+					Type:     &arrow.Decimal128Type{Precision: 38, Scale: 10},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "decimal_col2",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "38",
+						"sql.scale":              "10",
+					}),
+				},
+			}, nil),
+			expected: `[{"decimal_col2": "-9999999999999999999999999999.9999999999"}, {"decimal_col2": "9999999999999999999999999999.9999999999"}]`,
+		},
+		{
+			name:  "decimal3",
+			query: "SELECT decimal_col3 FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "decimal_col3",
+					Type:     &arrow.Decimal64Type{Precision: 18, Scale: 10},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "decimal_col3",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "18",
+						"sql.scale":              "10",
+					}),
+				},
+			}, nil),
+			expected: `[{"decimal_col3": "-99999999.9999999999"}, {"decimal_col3": "99999999.9999999999"}]`,
+		},
+		{
+			name:  "decimal4",
+			query: "SELECT decimal_col4 FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "decimal_col4",
+					Type:     &arrow.Decimal32Type{Precision: 9, Scale: 5},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "decimal_col4",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "9",
+						"sql.scale":              "5",
+					}),
+				},
+			}, nil),
+			expected: `[{"decimal_col4": "-9999.99999"}, {"decimal_col4": "9999.99999"}]`,
+		},
+		{
+			name:  "decimal5",
+			query: "SELECT decimal_col5 FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "decimal_col5",
+					Type:     &arrow.Decimal64Type{Precision: 18, Scale: 0},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "decimal_col5",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "18",
+						"sql.scale":              "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"decimal_col5": "-999999999999999999"}, {"decimal_col5": "999999999999999999"}]`,
+		},
+		{
+			name:  "dec",
+			query: "SELECT dec_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "dec_col",
+					Type:     &arrow.Decimal128Type{Precision: 20, Scale: 0},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "dec_col",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "20",
+						"sql.scale":              "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"dec_col": -9999999999}, {"dec_col": 9999999999}]`,
+		},
+		{
+			name:  "fixed",
+			query: "SELECT fixed_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "fixed_col",
+					Type:     &arrow.Decimal128Type{Precision: 20, Scale: 0},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "fixed_col",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "20",
+						"sql.scale":              "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"fixed_col": -9999999999}, {"fixed_col": 9999999999}]`,
+		},
+		{
+			name:  "numeric",
+			query: "SELECT numeric_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "numeric_col",
+					Type:     &arrow.Decimal128Type{Precision: 20, Scale: 0},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "numeric_col",
+						"sql.database_type_name": "DECIMAL",
+						"sql.precision":          "20",
+						"sql.scale":              "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"numeric_col": -9999999999}, {"numeric_col": 9999999999}]`,
 		},
 	} {
 		s.Run(testCase.name, func() {

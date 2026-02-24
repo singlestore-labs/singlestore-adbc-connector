@@ -108,6 +108,47 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 		return timestampType, colType.Nullable, metadata, nil
 
+	case "FLOAT":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+		metadata := arrow.MetadataFrom(metadataMap)
+
+		return arrow.PrimitiveTypes.Float32, nullable, metadata, nil
+
+	case "DOUBLE":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+		metadata := arrow.MetadataFrom(metadataMap)
+
+		return arrow.PrimitiveTypes.Float64, nullable, metadata, nil
+
+	case "DECIMAL", "NUMERIC":
+		if colType.Precision != nil && colType.Scale != nil {
+			precision := *colType.Precision
+			scale := *colType.Scale
+
+			arrowType, err := arrow.NarrowestDecimalType(int32(precision), int32(scale))
+			if err != nil {
+				return nil, false, arrow.Metadata{}, fmt.Errorf("invalid decimal precision/scale (%d, %d): %w", precision, scale, err)
+			}
+
+			// Build metadata with decimal information
+			metadata := arrow.MetadataFrom(map[string]string{
+				sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+				sqlwrapper.MetaKeyColumnName:       colType.Name,
+				sqlwrapper.MetaKeyPrecision:        fmt.Sprintf("%d", precision),
+				sqlwrapper.MetaKeyScale:            fmt.Sprintf("%d", scale),
+			})
+
+			return arrowType, nullable, metadata, nil
+		}
+
+		return m.DefaultTypeConverter.ConvertRawColumnType(colType)
+
 	default:
 		// Fall back to default conversion for standard types
 		return m.DefaultTypeConverter.ConvertRawColumnType(colType)
