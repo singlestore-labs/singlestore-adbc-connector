@@ -109,7 +109,7 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 		return timestampType, colType.Nullable, metadata, nil
 
-	case "FLOAT":
+	case "YEAR":
 		metadataMap := map[string]string{
 			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
 			sqlwrapper.MetaKeyColumnName:       colType.Name,
@@ -118,7 +118,7 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 		return arrow.PrimitiveTypes.Int16, nullable, metadata, nil
 
-	case "YEAR":
+	case "FLOAT":
 		metadataMap := map[string]string{
 			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
 			sqlwrapper.MetaKeyColumnName:       colType.Name,
