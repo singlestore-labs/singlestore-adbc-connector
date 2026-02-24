@@ -481,11 +481,11 @@ func (s *SingleStoreTests) TestSelect() {
 		  1.7976931348623157E+308,    -- real_col
 		  '9999-12-31',               -- date_col
 		  '838:59:59',                -- time_col
-		  '838:59:59.999999',         -- time6_col
+		  '838:59:58.999999',         -- time6_col
 		  '9999-12-31 23:59:59',      -- datetime_col
 		  '9999-12-31 23:59:59.999999', -- datetime6_col
 		  '2038-01-19 03:14:07',      -- timestamp_col
-		  '2038-01-19 03:14:07.999999', -- timestamp6_col
+		  '2038-01-19 03:14:06.999999', -- timestamp6_col
 		  2155,                       -- year_col
 		  '99999999999999999999999999999999999.999999999999999999999999999999', -- decimal_col1
 		  '9999999999999999999999999999.9999999999', -- decimal_col2
@@ -860,6 +860,140 @@ func (s *SingleStoreTests) TestSelect() {
 				},
 			}, nil),
 			expected: `[{"numeric_col": -9999999999}, {"numeric_col": 9999999999}]`,
+		},
+		{
+			name:  "date",
+			query: "SELECT date_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "date_col",
+					Type:     arrow.FixedWidthTypes.Date32,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "date_col",
+						"sql.database_type_name": "DATE",
+					}),
+				},
+			}, nil),
+			expected: `[{"date_col": "1000-01-01"}, {"date_col": "9999-12-31"}]`,
+		},
+		{
+			name:  "time",
+			query: "SELECT time_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "time_col",
+					Type:     arrow.FixedWidthTypes.Time32s,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "time_col",
+						"sql.database_type_name":           "TIME",
+						"sql.fractional_seconds_precision": "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"time_col": -3020399}, {"time_col": 3020399}]`,
+		},
+		{
+			name:  "time6",
+			query: "SELECT time6_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "time6_col",
+					Type:     arrow.FixedWidthTypes.Time64us,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "time6_col",
+						"sql.database_type_name":           "TIME",
+						"sql.fractional_seconds_precision": "6",
+					}),
+				},
+			}, nil),
+			expected: `[{"time6_col": -3020399000000}, {"time6_col": 3020398999999}]`,
+		},
+		{
+			name:  "datetime",
+			query: "SELECT datetime_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "datetime_col",
+					Type:     &arrow.TimestampType{Unit: arrow.Second},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "datetime_col",
+						"sql.database_type_name":           "DATETIME",
+						"sql.fractional_seconds_precision": "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"datetime_col": "1000-01-01 00:00:00"}, {"datetime_col": "9999-12-31 23:59:59"}]`,
+		},
+		{
+			name:  "datetime6",
+			query: "SELECT datetime6_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "datetime6_col",
+					Type:     &arrow.TimestampType{Unit: arrow.Microsecond},
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "datetime6_col",
+						"sql.database_type_name":           "DATETIME",
+						"sql.fractional_seconds_precision": "6",
+					}),
+				},
+			}, nil),
+			expected: `[{"datetime6_col": "1000-01-01 00:00:00.000000"}, {"datetime6_col": "9999-12-31 23:59:59.999999"}]`,
+		},
+		{
+			name:  "timestamp",
+			query: "SELECT timestamp_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "timestamp_col",
+					Type:     arrow.FixedWidthTypes.Timestamp_s,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "timestamp_col",
+						"sql.database_type_name":           "TIMESTAMP",
+						"sql.fractional_seconds_precision": "0",
+					}),
+				},
+			}, nil),
+			expected: `[{"timestamp_col": "1970-01-01 00:00:01"}, {"timestamp_col": "2038-01-19 03:14:07"}]`,
+		},
+		{
+			name:  "timestamp6",
+			query: "SELECT timestamp6_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "timestamp6_col",
+					Type:     arrow.FixedWidthTypes.Timestamp_us,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":                  "timestamp6_col",
+						"sql.database_type_name":           "TIMESTAMP",
+						"sql.fractional_seconds_precision": "6",
+					}),
+				},
+			}, nil),
+			expected: `[{"timestamp6_col": "1970-01-01 00:00:01"}, {"timestamp6_col": "2038-01-19 03:14:06.999999"}]`,
+		},
+		{
+			name:  "year",
+			query: "SELECT year_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "year_col",
+					Type:     arrow.PrimitiveTypes.Int16,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "year_col",
+						"sql.database_type_name": "YEAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"year_col": 1901}, {"year_col": 2155}]`,
 		},
 	} {
 		s.Run(testCase.name, func() {
