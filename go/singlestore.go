@@ -61,16 +61,6 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 		return arrow.BinaryTypes.Binary, nullable, metadata, nil
 
-	case "GEOMETRY", "POINT", "LINESTRING", "POLYGON", "MULTIPOINT", "MULTILINESTRING", "MULTIPOLYGON":
-		// Convert SingleStore spatial types to binary with spatial metadata
-		// TODO: we should use geoarrow extension types if applicable
-		metadata := arrow.MetadataFrom(map[string]string{
-			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
-			sqlwrapper.MetaKeyColumnName:       colType.Name,
-			"singlestore.is_spatial":           "true",
-		})
-		return arrow.BinaryTypes.Binary, nullable, metadata, nil
-
 	case "ENUM", "SET":
 		// Handle ENUM/SET as string with special metadata
 		metadataMap := map[string]string{
@@ -207,11 +197,8 @@ func (m *singlestoreTypeConverter) CreateInserter(field *arrow.Field, builder ar
 		if dbTypeName, ok := field.Metadata.GetValue("sql.database_type_name"); ok && dbTypeName == "BIT" {
 			return &singlestoreBitInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
 		}
-		// Handle SingleStore spatial types
-		if isSpatial, ok := field.Metadata.GetValue("mysql.is_spatial"); ok && isSpatial == "true" {
-			return &singlestoreSpatialInserter{builder: builder.(array.BinaryLikeBuilder)}, nil
-		}
-		// Fall through to default for non-spatial binary
+
+		// Fall through to default for binary
 		return m.DefaultTypeConverter.CreateInserter(field, builder)
 	// Time types
 	case *arrow.Time32Type:
@@ -456,25 +443,6 @@ func (ins *singlestoreBitInserter) AppendValue(sqlValue any) error {
 	t, ok := sqlValue.([]byte)
 	if !ok {
 		return fmt.Errorf("expected []byte for singlestore bit inserter, got %T", sqlValue)
-	}
-
-	ins.builder.Append(t)
-	return nil
-}
-
-type singlestoreSpatialInserter struct {
-	builder array.BinaryLikeBuilder
-}
-
-func (ins *singlestoreSpatialInserter) AppendValue(sqlValue any) error {
-	if sqlValue == nil {
-		ins.builder.AppendNull()
-		return nil
-	}
-
-	t, ok := sqlValue.([]byte)
-	if !ok {
-		return fmt.Errorf("expected []byte for singlestore spatial inserter, got %T", sqlValue)
 	}
 
 	ins.builder.Append(t)

@@ -1255,6 +1255,38 @@ func (s *SingleStoreTests) TestSelect() {
 			}, nil),
 			expected: `[{"set_col": ""}, {"set_col": "a,b,c"}]`,
 		},
+		{
+			name:  "geography",
+			query: "SELECT geography_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "geography_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "geography_col",
+						"sql.database_type_name": "CHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"geography_col": null}, {"geography_col": "POLYGON((1.00000000 1.00000000, 0.00000000 1.00000000, 0.00000000 0.00000000, 1.00000000 1.00000000))"}]`,
+		},
+		{
+			name:  "geographypoint",
+			query: "SELECT geographypoint_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "geographypoint_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "geographypoint_col",
+						"sql.database_type_name": "CHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"geographypoint_col": null}, {"geographypoint_col": "POINT(-74.04451396 40.68924403)"}]`,
+		},
 	} {
 		s.Run(testCase.name, func() {
 			s.NoError(s.stmt.SetSqlQuery(testCase.query))
