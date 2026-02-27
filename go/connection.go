@@ -49,7 +49,7 @@ func (c *singlestoreConnectionImpl) GetCurrentDbSchema() (string, error) {
 
 // SetCurrentCatalog implements driverbase.CurrentNamespacer.
 func (c *singlestoreConnectionImpl) SetCurrentCatalog(catalog string) error {
-	_, err := c.Db.ExecContext(context.Background(), "USE "+quoteIdentifier(catalog))
+	_, err := c.Db.ExecContext(context.Background(), "USE "+c.QuoteIdentifier(catalog))
 	return err
 }
 
@@ -213,12 +213,12 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 
 	// Build INSERT statement (once for all batches)
 	var placeholders []string
-	for range int(schema.NumFields()) {
-		placeholders = append(placeholders, "?")
+	for i, field := range schema.Fields() {
+		placeholders = append(placeholders, c.GetPlaceholder(&field, i))
 	}
 
 	insertSQL := fmt.Sprintf("INSERT INTO %s VALUES (%s)",
-		quoteIdentifier(options.TableName),
+		c.QuoteIdentifier(options.TableName),
 		strings.Join(placeholders, ", "))
 
 	// Prepare the statement (once for all batches)
@@ -270,6 +270,16 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 	return totalRowsInserted, nil
 }
 
+// GetPlaceholder returns the SQL placeholder for a field at the given parameter index (0-based)
+func (c *singlestoreConnectionImpl) GetPlaceholder(field *arrow.Field, index int) string {
+	return "?"
+}
+
+// QuoteIdentifier quotes a table/column identifier for SQL
+func (c *singlestoreConnectionImpl) QuoteIdentifier(name string) string {
+	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
+}
+
 // createTableIfNeeded creates the table based on the ingest mode
 func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, options *driverbase.BulkIngestOptions) error {
 	switch options.Mode {
@@ -300,7 +310,7 @@ func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwr
 	if ifNotExists {
 		queryBuilder.WriteString("IF NOT EXISTS ")
 	}
-	queryBuilder.WriteString(quoteIdentifier(tableName))
+	queryBuilder.WriteString(c.QuoteIdentifier(tableName))
 	queryBuilder.WriteString(" (")
 
 	for i, field := range schema.Fields() {
@@ -308,7 +318,7 @@ func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwr
 			queryBuilder.WriteString(", ")
 		}
 
-		queryBuilder.WriteString(quoteIdentifier(field.Name))
+		queryBuilder.WriteString(c.QuoteIdentifier(field.Name))
 		queryBuilder.WriteString(" ")
 
 		// Convert Arrow type to SingleStore type
@@ -324,7 +334,7 @@ func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwr
 
 // dropTable drops a SingleStore table
 func (c *singlestoreConnectionImpl) dropTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string) error {
-	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", quoteIdentifier(tableName))
+	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", c.QuoteIdentifier(tableName))
 	_, err := conn.ExecContext(ctx, dropSQL)
 	return err
 }
@@ -419,8 +429,4 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 	}
 
 	return singlestoreType
-}
-
-func quoteIdentifier(name string) string {
-	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
 }
