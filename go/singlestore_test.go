@@ -525,6 +525,14 @@ func (s *SingleStoreTests) TestSelect() {
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
+	s.NoError(s.stmt.SetSqlQuery("SET @@SESSION.enable_extended_types_metadata=on"))
+	_, err = s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	s.NoError(s.stmt.SetSqlQuery("SET @@SESSION.vector_type_project_format=JSON"))
+	_, err = s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
 	jsonType, err := extensions.NewJSONType(arrow.BinaryTypes.LargeString)
 	s.NoError(err)
 
@@ -1286,6 +1294,102 @@ func (s *SingleStoreTests) TestSelect() {
 				},
 			}, nil),
 			expected: `[{"geographypoint_col": null}, {"geographypoint_col": "POINT(-74.04451396 40.68924403)"}]`,
+		},
+		{
+			name:  "vector_i8",
+			query: "SELECT vector_i8_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_i8_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_i8_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_i8_col": "[-128,-128]"}, {"vector_i8_col": "[127,127]"}]`,
+		},
+		{
+			name:  "vector_i16",
+			query: "SELECT vector_i16_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_i16_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_i16_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_i16_col": "[-32768,-32768]"}, {"vector_i16_col": "[32767,32767]"}]`,
+		},
+		{
+			name:  "vector_i32",
+			query: "SELECT vector_i32_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_i32_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_i32_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_i32_col": "[-2147483648,-2147483648]"}, {"vector_i32_col": "[2147483647,2147483647]"}]`,
+		},
+		{
+			name:  "vector_i64",
+			query: "SELECT vector_i64_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_i64_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_i64_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_i64_col": "[-9223372036854775808,-9223372036854775808]"}, {"vector_i64_col": "[9223372036854775807,9223372036854775807]"}]`,
+		},
+		{
+			name:  "vector_f32",
+			query: "SELECT vector_f32_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_f32_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_f32_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_f32_col": "[-3.40282347e+38,-3.40282347e+38]"}, {"vector_f32_col": "[3.40282347e+38,3.40282347e+38]"}]`,
+		},
+		{
+			name:  "vector_f64",
+			query: "SELECT vector_f64_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "vector_f64_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "vector_f64_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"vector_f64_col": "[-1.7976931348623157e+308,-1.7976931348623157e+308]"}, {"vector_f64_col": "[1.7976931348623157e+308,1.7976931348623157e+308]"}]`,
 		},
 	} {
 		s.Run(testCase.name, func() {
