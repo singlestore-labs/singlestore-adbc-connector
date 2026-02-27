@@ -176,6 +176,19 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 
 		return arrow.BinaryTypes.LargeString, nullable, metadata, nil
+	case "JSON":
+		metadataMap := map[string]string{
+			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
+			sqlwrapper.MetaKeyColumnName:       colType.Name,
+		}
+		metadata := arrow.MetadataFrom(metadataMap)
+
+		jsonType, err := extensions.NewJSONType(arrow.BinaryTypes.LargeString)
+		if err != nil {
+			return nil, false, arrow.Metadata{}, fmt.Errorf("error creating JSON type: %w", err)
+		}
+
+		return jsonType, nullable, metadata, nil
 
 	default:
 		// Fall back to default conversion for standard types

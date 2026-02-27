@@ -29,6 +29,7 @@ import (
 	"github.com/apache/arrow-adbc/go/adbc"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/extensions"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -522,6 +523,9 @@ func (s *SingleStoreTests) TestSelect() {
 		)
 	`))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	jsonType, err := extensions.NewJSONType(arrow.BinaryTypes.LargeString)
 	s.NoError(err)
 
 	for _, testCase := range []selectCase{
@@ -1186,6 +1190,70 @@ func (s *SingleStoreTests) TestSelect() {
 				},
 			}, nil),
 			expected: `[{"tinyblob_col": "AA=="}, {"tinyblob_col": "//////////////////////////////////////////////////////////////////8="}]`,
+		},
+		{
+			name:  "json",
+			query: "SELECT json_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "json_col",
+					Type:     jsonType,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "json_col",
+						"sql.database_type_name": "JSON",
+					}),
+				},
+			}, nil),
+			expected: `[{"json_col": "{}"}, {"json_col": "{\"key\":\"value\"}"}]`,
+		},
+		{
+			name:  "bson",
+			query: "SELECT bson_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "bson_col",
+					Type:     arrow.BinaryTypes.LargeBinary,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "bson_col",
+						"sql.database_type_name": "LONGBLOB",
+					}),
+				},
+			}, nil),
+			expected: `[{"bson_col": "BQAAAAA="}, {"bson_col": "FAAAAAJrZXkABgAAAHZhbHVlAAA="}]`,
+		},
+		{
+			name:  "enum",
+			query: "SELECT enum_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "enum_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "enum_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"enum_col": "active"}, {"enum_col": "inactive"}]`,
+		},
+		{
+			name:  "set",
+			query: "SELECT set_col FROM test_types ORDER BY id",
+			schema: arrow.NewSchema([]arrow.Field{
+				{
+					Name:     "set_col",
+					Type:     arrow.BinaryTypes.String,
+					Nullable: true,
+					Metadata: arrow.MetadataFrom(map[string]string{
+						"sql.column_name":        "set_col",
+						"sql.database_type_name": "VARCHAR",
+					}),
+				},
+			}, nil),
+			expected: `[{"set_col": ""}, {"set_col": "a,b,c"}]`,
 		},
 	} {
 		s.Run(testCase.name, func() {
