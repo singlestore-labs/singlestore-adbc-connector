@@ -46,7 +46,6 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 	nullable := colType.Nullable
 
 	switch typeName {
-	// TODO: update to handle SingleStore-specific data types
 	case "BIT":
 		// Handle BIT type as binary data
 		metadataMap := map[string]string{
@@ -190,7 +189,6 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 func (m *singlestoreTypeConverter) CreateInserter(field *arrow.Field, builder array.Builder) (sqlwrapper.Inserter, error) {
 	// Check for SingleStore-specific types first
 	switch field.Type.(type) {
-	// TODO: update to handle SingleStore-specific data types
 	case *extensions.JSONType:
 		return &singlestoreJSONInserter{builder: builder}, nil
 	case *arrow.BinaryType:
