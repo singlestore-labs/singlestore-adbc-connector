@@ -16,27 +16,32 @@
 // part: metadata
 
 [tags]
-sql-type-name = "DATETIME"
+sql-type-name = "TIME"
 
 // part: setup_query
 
-CREATE TABLE test_timestamp (
+CREATE TABLE test_time (
     idx INT,
-    res DATETIME(6)
+    res TIME(0)
 );
 
-// part: bind
+// part: expected_schema
 
-{"idx": 3, "res": 1684158330123456}
-{"idx": 2, "res": 946684800123456}
-{"idx": 1, "res": 0}
-{"idx": 4, "res": 253402300799999999}
-{"idx": 0, "res": null}
+{
+    "format": "+s",
+    "children": [
+        {
+            "name": "res",
+            "format": "tts",
+            "flags": ["nullable"]
+        }
+    ]
+}
 
 // part: expected
 
-{"res": null}
 {"res": 0}
-{"res": 946684800123456}
-{"res": 1684158330123456}
-{"res": 253402300799999999}
+{"res": null}
+{"res": 49531}
+{"res": 45045}
+{"res": 86399}

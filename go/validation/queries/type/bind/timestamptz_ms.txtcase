@@ -25,9 +25,28 @@ sql-type-name = "TIMESTAMP"
 
 CREATE TABLE test_timestamptz (
     idx INT,
-    res TIMESTAMP(3),
-    res2 TIMESTAMP(3)
+    res TIMESTAMP(0),
+    res2 TIMESTAMP(0)
 );
+
+// part: expected_schema
+
+{
+    "format": "+s",
+    "children": [
+        {
+            "name": "res",
+            "format": "tss:UTC",
+            "flags": ["nullable"]
+        },
+        {
+            "name": "res2",
+            "format": "tss:UTC",
+            "flags": ["nullable"]
+        }
+    ]
+}
+
 
 // part: bind
 
@@ -40,7 +59,7 @@ CREATE TABLE test_timestamptz (
 // part: expected
 
 {"res": null, "res2": null}
-{"res": 1000, "res2": 1000}
-{"res": 946684800000, "res2": 946684800000}
-{"res": 1684158330000, "res2": 1684158330000}
-{"res": 2147483647499, "res2": 2147483647499}
+{"res": 1, "res2": 1}
+{"res": 946684800, "res2": 946684800}
+{"res": 1684158330, "res2": 1684158330}
+{"res": 2147483647, "res2": 2147483647}

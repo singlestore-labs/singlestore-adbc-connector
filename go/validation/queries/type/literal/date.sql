@@ -1,0 +1,1 @@
+SELECT '2023-05-15' :> DATE AS res

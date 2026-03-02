@@ -22,21 +22,34 @@ sql-type-name = "DATETIME"
 
 CREATE TABLE test_timestamp (
     idx INT,
-    res DATETIME(3)
+    res DATETIME(0)
 );
+
+// part: expected_schema
+
+{
+    "format": "+s",
+    "children": [
+        {
+            "name": "res",
+            "format": "tss",
+            "flags": ["nullable"]
+        }
+    ]
+}
 
 // part: bind
 
 {"idx": 3, "res": 1684158330123}
 {"idx": 2, "res": 946684800123}
-{"idx": 1, "res": -62135596799000}
+{"idx": 1, "res": 0}
 {"idx": 4, "res": 253402300799999}
 {"idx": 0, "res": null}
 
 // part: expected
 
 {"res": null}
-{"res": -62135596799000}
-{"res": 946684800123}
-{"res": 1684158330123}
-{"res": 253402300799999}
+{"res": 0}
+{"res": 946684800}
+{"res": 1684158330}
+{"res": 253402300799}

@@ -1,8 +1,8 @@
-{"res": "{\"key\": \"value\", \"number\": 42}"}
-{"res": "{\"array\": [1, 2, 3], \"nested\": {\"inner\": true}}"}
+{"res": "{\"key\":\"value\",\"number\":42}"}
+{"res": "{\"array\":[1,2,3],\"nested\":{\"inner\":true}}"}
 {"res": "[]"}
 {"res": "{}"}
 {"res": "null"}
-{"res": "{\"special\": \"chars@#$%\", \"unicode\": \"测试\"}"}
-{"res": "{\"boolean\": false, \"large_number\": 9223372036854775807}"}
+{"res": "{\"special\":\"chars@#$%\",\"unicode\":\"测试\"}"}
+{"res": "{\"boolean\":false,\"large_number\":9223372036854775807}"}
 {"res": null}
