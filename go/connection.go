@@ -374,7 +374,7 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		case arrow.Second:
 			precision = ""
 		case arrow.Millisecond:
-			precision = "(3)"
+			precision = "(6)"
 		case arrow.Microsecond:
 			precision = "(6)"
 		case arrow.Nanosecond:
@@ -398,7 +398,7 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		case arrow.Second:
 			singlestoreType = "TIME"
 		case arrow.Millisecond:
-			singlestoreType = "TIME(3)"
+			singlestoreType = "TIME(6)"
 		default:
 			// should never happen, but panic here for defensive programming
 			panic(fmt.Sprintf("unexpected Time32 unit: %v", arrowType.Unit))
