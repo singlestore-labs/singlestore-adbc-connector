@@ -32,18 +32,23 @@ class SingleStoreQuirks(model.DriverQuirks):
     features = model.DriverFeatures(
         connection_get_table_schema=True,
         connection_transactions=False,
+        get_objects=True,
         get_objects_constraints_foreign=False,
         get_objects_constraints_primary=False,
         get_objects_constraints_unique=False,
+        statement_bind=True,
         statement_bulk_ingest=True,
         statement_bulk_ingest_catalog=True,
-        statement_bulk_ingest_schema=True,
+        statement_bulk_ingest_schema=False,
         statement_bulk_ingest_temporary=True,
         statement_execute_schema=True,
         statement_get_parameter_schema=False,
         statement_rows_affected=True,
         current_catalog="db",  # SingleStore treats databases as catalogs (also JDBC behavior)
         current_schema="",  # getSchemas() returns empty - no schema concept (also JDBC behavior)
+        secondary_catalog="db2",
+        secondary_schema="",
+        secondary_catalog_schema="",
         supported_xdbc_fields=[],
     )
     setup = model.DriverSetup(
@@ -72,6 +77,11 @@ class SingleStoreQuirks(model.DriverQuirks):
                 or "not found" in error_str
             )
             and table_name.lower() in error_str
+        )
+
+    def quote_identifier(self, *identifiers: str) -> str:
+        return ".".join(
+            self.quote_one_identifier(ident) for ident in identifiers if ident
         )
 
     def quote_one_identifier(self, identifier: str) -> str:

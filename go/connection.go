@@ -358,11 +358,9 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		singlestoreType = "FLOAT"
 	case *arrow.Float64Type:
 		singlestoreType = "DOUBLE"
-	case *arrow.StringType:
-		singlestoreType = "TEXT"
-	case *arrow.BinaryType, *arrow.FixedSizeBinaryType, *arrow.BinaryViewType:
-		singlestoreType = "BLOB"
-	case *arrow.LargeBinaryType:
+	case *arrow.StringType, *arrow.LargeStringType:
+		singlestoreType = "LONGTEXT"
+	case *arrow.BinaryType, *arrow.FixedSizeBinaryType, *arrow.BinaryViewType, *arrow.LargeBinaryType:
 		singlestoreType = "LONGBLOB"
 	case *arrow.Date32Type:
 		singlestoreType = "DATE"
@@ -373,12 +371,8 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		switch arrowType.Unit {
 		case arrow.Second:
 			precision = ""
-		case arrow.Millisecond:
+		case arrow.Millisecond, arrow.Microsecond, arrow.Nanosecond:
 			precision = "(6)"
-		case arrow.Microsecond:
-			precision = "(6)"
-		case arrow.Nanosecond:
-			precision = "(6)" // SingleStore max is 6 digits
 		default:
 			// should never happen, but panic here for defensive programming
 			panic(fmt.Sprintf("unexpected Arrow timestamp unit: %v", arrowType.Unit))
@@ -405,16 +399,10 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		}
 
 	case *arrow.Time64Type:
-		// Determine precision based on Arrow time unit
-		switch arrowType.Unit {
-		case arrow.Microsecond:
-			singlestoreType = "TIME(6)"
-		case arrow.Nanosecond:
-			singlestoreType = "TIME(6)" // SingleStore max is 6 digits
-		default:
-			// should never happen, but panic here for defensive programming
+		if arrowType.Unit != arrow.Microsecond && arrowType.Unit != arrow.Nanosecond {
 			panic(fmt.Sprintf("unexpected Time64 unit: %v", arrowType.Unit))
 		}
+		return "TIME(6)"
 	case arrow.DecimalType:
 		singlestoreType = fmt.Sprintf("DECIMAL(%d,%d)", arrowType.GetPrecision(), arrowType.GetScale())
 	default:
