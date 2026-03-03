@@ -347,6 +347,61 @@ type selectCase struct {
 	expected string
 }
 
+func (s *SingleStoreTests) TestBulkInsertTime() {
+	s.NoError(s.stmt.SetSqlQuery("CREATE TEMPORARY TABLE test_bulk_insert_time (id INT PRIMARY KEY, t1 TIME, t2 TIME(6))"))
+	_, err := s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{Name: "id", Type: arrow.PrimitiveTypes.Int32, Nullable: false,
+			Metadata: arrow.MetadataFrom(map[string]string{"sql.column_name": "id", "sql.database_type_name": "INT"}),
+		},
+		{Name: "t1", Type: arrow.FixedWidthTypes.Time32s, Nullable: true,
+			Metadata: arrow.MetadataFrom(map[string]string{"sql.column_name": "t1", "sql.database_type_name": "TIME", "sql.fractional_seconds_precision": "0"}),
+		},
+		{Name: "t2", Type: arrow.FixedWidthTypes.Time64us, Nullable: true,
+			Metadata: arrow.MetadataFrom(map[string]string{"sql.column_name": "t2", "sql.database_type_name": "TIME", "sql.fractional_seconds_precision": "6"}),
+		},
+	}, nil)
+
+	batchbldr := array.NewRecordBuilder(s.Quirks.Alloc(), schema)
+	defer batchbldr.Release()
+	bldr1 := batchbldr.Field(0).(*array.Int32Builder)
+	bldr1.AppendValues([]int32{1, 2}, []bool{true, true})
+
+	bldr2 := batchbldr.Field(1).(*array.Time32Builder)
+	bldr2.AppendValues([]arrow.Time32{3020399, -3020399}, []bool{true, true})
+
+	bldr3 := batchbldr.Field(2).(*array.Time64Builder)
+	bldr3.AppendValues([]arrow.Time64{3020399000000, -3020399000000}, []bool{true, true})
+
+	batch := batchbldr.NewRecordBatch()
+	defer batch.Release()
+
+	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestTargetTable, "test_bulk_insert_time"))
+	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
+	s.NoError(s.stmt.Bind(s.ctx, batch))
+	_, err = s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	s.NoError(s.stmt.SetSqlQuery("SELECT * FROM test_bulk_insert_time ORDER BY id"))
+
+	rdr, rows, err := s.stmt.ExecuteQuery(s.ctx)
+	s.NoError(err)
+	defer rdr.Release()
+
+	s.Equal(int64(-1), rows)
+	s.Truef(rdr.Next(), "no record, error? %s", rdr.Err())
+
+	rec := rdr.RecordBatch()
+	s.NotNil(rec)
+
+	s.Truef(array.RecordEqual(batch, rec), "expected: %s\ngot: %s", batch, rec)
+
+	s.False(rdr.Next())
+	s.NoError(rdr.Err())
+}
+
 func (s *SingleStoreTests) TestSelect() {
 	// Create test table with various SingleStore types including spatial
 	s.NoError(s.stmt.SetSqlQuery(`

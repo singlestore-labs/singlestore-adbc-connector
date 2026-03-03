@@ -462,18 +462,14 @@ func (m *singlestoreTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, inde
 		return v, nil
 
 	case *array.Time32:
-		// For SingleStore driver, always convert Time32 arrays to time-only format strings
-		// This handles both explicit TIME column metadata and parameter binding scenarios
-		timeType := a.DataType().(*arrow.Time32Type)
-		t := a.Value(index).ToTime(timeType.Unit)
-		return t.Format("15:04:05.000000"), nil
+		value := int64(a.Value(index))
+		unit := a.DataType().(*arrow.Time32Type).Unit
+		return formatSingleStoreTime(value, unit)
 
 	case *array.Time64:
-		// For SingleStore driver, always convert Time64 arrays to time-only format strings
-		// This handles both explicit TIME column metadata and parameter binding scenarios
-		timeType := a.DataType().(*arrow.Time64Type)
-		t := a.Value(index).ToTime(timeType.Unit)
-		return t.Format("15:04:05.000000"), nil
+		value := int64(a.Value(index))
+		unit := a.DataType().(*arrow.Time64Type).Unit
+		return formatSingleStoreTime(value, unit)
 
 	case *array.Timestamp:
 		timestampType := a.DataType().(*arrow.TimestampType)
@@ -493,6 +489,40 @@ func (m *singlestoreTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, inde
 		// For all other types, use default conversion
 		return m.DefaultTypeConverter.ConvertArrowToGo(arrowArray, index, field)
 	}
+}
+
+func formatSingleStoreTime(t int64, unit arrow.TimeUnit) (string, error) {
+	switch unit {
+	case arrow.Second:
+		return formatSingleStoreTimeInMicros(t * 1000000), nil
+	case arrow.Millisecond:
+		return formatSingleStoreTimeInMicros(t * 1000), nil
+	case arrow.Microsecond:
+		return formatSingleStoreTimeInMicros(t), nil
+	case arrow.Nanosecond:
+		return formatSingleStoreTimeInMicros(t / 1000), nil
+	default:
+		return "", fmt.Errorf("unsupported Time unit: %v", unit)
+	}
+}
+
+// formatSingleStoreTimeInMicros takes a time value in microseconds and returns its string representation.
+func formatSingleStoreTimeInMicros(t int64) string {
+	sign := ""
+	if t < 0 {
+		sign = "-"
+		t = -t
+	}
+
+	micros := t % 1000000
+	t = t / 1000000
+	secs := t % 60
+	t = t / 60
+	mins := t % 60
+	t = t / 60
+	hours := t
+
+	return fmt.Sprintf("%s%d:%02d:%02d.%06d", sign, hours, mins, secs, micros)
 }
 
 // singlestoreConnectionImpl extends sqlwrapper connection with DbObjectsEnumerator
