@@ -402,7 +402,7 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 		if arrowType.Unit != arrow.Microsecond && arrowType.Unit != arrow.Nanosecond {
 			panic(fmt.Sprintf("unexpected Time64 unit: %v", arrowType.Unit))
 		}
-		return "TIME(6)"
+		singlestoreType = "TIME(6)"
 	case arrow.DecimalType:
 		singlestoreType = fmt.Sprintf("DECIMAL(%d,%d)", arrowType.GetPrecision(), arrowType.GetScale())
 	default:
