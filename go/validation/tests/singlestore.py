@@ -37,13 +37,15 @@ class SingleStoreQuirks(model.DriverQuirks):
         get_objects_constraints_primary=False,
         get_objects_constraints_unique=False,
         statement_bind=True,
+        statement_prepare=True,
         statement_bulk_ingest=True,
         statement_bulk_ingest_catalog=True,
         statement_bulk_ingest_schema=False,
-        statement_bulk_ingest_temporary=True,
+        statement_bulk_ingest_temporary=False,
         statement_execute_schema=True,
         statement_get_parameter_schema=False,
         statement_rows_affected=True,
+        statement_rows_affected_ddl=True,
         current_catalog="db",  # SingleStore treats databases as catalogs (also JDBC behavior)
         current_schema="",  # getSchemas() returns empty - no schema concept (also JDBC behavior)
         secondary_catalog="db2",

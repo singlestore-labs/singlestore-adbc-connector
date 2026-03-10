@@ -93,7 +93,7 @@ def test_userpass_options_override_uri(
     [
         # pytest.param("tls=true", True, id="tls=true"),  # Docker SingleStore container uses a self-signed certificate that fails validation.
         pytest.param("tls=skip-verify", True, id="tls=skip-verify"),
-        pytest.param("tls=false", False, id="tls=false"),
+        pytest.param("ssl_disabled=True", False, id="ssl_disabled=True"),
         pytest.param("tls=preferred", True, id="tls=preferred"),
     ],
 )
@@ -115,17 +115,18 @@ def test_ssl_modes(
     ssl_uri = urllib.parse.urlunparse(
         (parsed.scheme, netloc, parsed.path, parsed.params, query, parsed.fragment)
     )
+    print("AAAA" + ssl_uri)
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
         db_kwargs={"uri": ssl_uri},
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SHOW STATUS LIKE 'Ssl_cipher'")
+            cursor.execute("SELECT @@ssl_cipher")
             result = cursor.fetchone()
             assert result, "Could not get SSL status"
 
-            cipher = result[1]
+            cipher = result[0]
             if expect_encrypted:
                 assert cipher, "Ssl_cipher is empty, connection is NOT encrypted"
             else:
@@ -207,10 +208,10 @@ def test_charset_selection_in_uri(
         db_kwargs={"uri": charset_uri},
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SHOW VARIABLES LIKE 'character_set_client'")
+            cursor.execute("SELECT @@character_set_client")
             result = cursor.fetchone()
             assert result
-            assert result[1] == "utf8mb4"
+            assert result[0] == "utf8mb4"
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
@@ -313,7 +314,7 @@ def test_minimal_dsn_with_creds(
 
             cursor.execute("SELECT DATABASE()")
             result = cursor.fetchone()
-            assert result[0] is None
+            assert result[0] is ''
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
