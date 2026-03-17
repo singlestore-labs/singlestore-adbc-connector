@@ -101,6 +101,9 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: go
         run: |
+          if [[ -f .env.ci ]]; then
+            source .env.ci
+          fi
           if [[ -f setup-cluster.sh ]]; then
             if ! ./setup-cluster.sh; then
               echo "Service failed to start"
@@ -206,6 +209,9 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: go
         run: |
+          if [[ -f .env.ci ]]; then
+            source .env.ci
+          fi
           if [[ -f setup-cluster.sh ]]; then
             if ! ./setup-cluster.sh; then
               echo "Service failed to start"

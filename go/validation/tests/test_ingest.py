@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import adbc_drivers_validation.tests.ingest
-from adbc_drivers_validation import compare, model
+import time
+
 import adbc_driver_manager.dbapi
+import adbc_drivers_validation.tests.ingest
 import pyarrow
-
+from adbc_drivers_validation import compare, model
 from adbc_drivers_validation.utils import execute_query_without_prepare
-
 
 from . import singlestore
 
@@ -36,10 +36,9 @@ class TestIngest(adbc_drivers_validation.tests.ingest.TestIngest):
         driver: model.DriverQuirks,
         conn: adbc_driver_manager.dbapi.Connection,
     ) -> None:
-        data_schema = pyarrow.schema([
-            ("idx", pyarrow.int64()),
-            ("value", pyarrow.large_string())
-        ])
+        data_schema = pyarrow.schema(
+            [("idx", pyarrow.int64()), ("value", pyarrow.large_string())]
+        )
         data = pyarrow.Table.from_pydict(
             {
                 "idx": [1, 2, 3],
@@ -79,10 +78,9 @@ class TestIngest(adbc_drivers_validation.tests.ingest.TestIngest):
         driver: model.DriverQuirks,
         conn: adbc_driver_manager.dbapi.Connection,
     ) -> None:
-        data_schema = pyarrow.schema([
-            ("idx", pyarrow.int64()),
-            ("value", pyarrow.large_string())
-        ])
+        data_schema = pyarrow.schema(
+            [("idx", pyarrow.int64()), ("value", pyarrow.large_string())]
+        )
 
         # Create a table in the default catalog/schema
         default_data = pyarrow.Table.from_pydict(

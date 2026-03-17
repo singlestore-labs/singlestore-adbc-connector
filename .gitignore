@@ -258,4 +258,4 @@ __marimo__/
 
 .idea
 
-go/ssl/certs/
+go/ssl/

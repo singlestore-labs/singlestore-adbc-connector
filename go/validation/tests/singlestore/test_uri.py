@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import urllib.parse
 import os
+import urllib.parse
 
 import adbc_driver_manager.dbapi
 import pytest
@@ -90,10 +90,10 @@ def test_userpass_options_override_uri(
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
 @pytest.mark.parametrize(
-    "tls_param, expect_encrypted",
+    "tls_param",
     [
-        pytest.param("tls=skip-verify", True, id="tls=skip-verify"),
-        pytest.param("tls=preferred", True, id="tls=preferred"),
+        pytest.param("tls=skip-verify", id="tls=skip-verify"),
+        pytest.param("tls=preferred", id="tls=preferred"),
     ],
 )
 def test_ssl_modes(
@@ -102,7 +102,6 @@ def test_ssl_modes(
     uri: str,  # mysql://localhost:3306/db
     creds: tuple[str, str],
     tls_param: str,
-    expect_encrypted: bool,
 ) -> None:
     """Test various SSL configurations with dynamic URI construction."""
     username = os.getenv("SINGLESTORE_USERNAME_SSL", "root")
@@ -123,6 +122,7 @@ def test_ssl_modes(
             cursor.execute("SELECT 1")
             result = cursor.fetchone()
             assert result[0] == 1
+
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
 def test_uri_default_port(
@@ -305,7 +305,7 @@ def test_minimal_dsn_with_creds(
 
             cursor.execute("SELECT DATABASE()")
             result = cursor.fetchone()
-            assert result[0] is ''
+            assert result[0] == ""
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")

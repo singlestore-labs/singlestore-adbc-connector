@@ -31,14 +31,14 @@ class SingleStoreQuirks(model.DriverQuirks):
     short_version = os.getenv("SINGLESTORE_VERSION")
     features = model.DriverFeatures(
         connection_get_table_schema=True,
-        connection_transactions=False, # TODO: PLAT-7827
+        connection_transactions=False,  # TODO: PLAT-7827
         connection_set_current_catalog=True,
         connection_set_current_schema=True,
         get_objects=True,
         get_objects_constraints_check=False,
         get_objects_constraints_foreign=False,
-        get_objects_constraints_primary=False, # TODO: PLAT-7798
-        get_objects_constraints_unique=False, # TODO: PLAT-7798
+        get_objects_constraints_primary=False,  # TODO: PLAT-7798
+        get_objects_constraints_unique=False,  # TODO: PLAT-7798
         statement_bind=True,
         statement_prepare=True,
         statement_bulk_ingest=True,

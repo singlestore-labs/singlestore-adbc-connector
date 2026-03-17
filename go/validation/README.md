@@ -20,6 +20,7 @@
 1. Start the Docker container:
 
    ```shell
+    source .env.ci
    ./setup-cluster.sh
    ```
 2. Set the environment variable:

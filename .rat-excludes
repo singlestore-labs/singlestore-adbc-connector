@@ -24,3 +24,4 @@ go/pkg/utils.h
 go/validation/pixi.lock
 go/validation/queries/*/*.json
 go/validation/queries/*/*.sql
+go/setup-cluster.sh
