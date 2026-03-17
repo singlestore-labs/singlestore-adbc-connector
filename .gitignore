@@ -257,3 +257,5 @@ __marimo__/
 .doit.db
 
 .idea
+
+go/ssl/

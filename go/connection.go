@@ -207,7 +207,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 
 	// Get schema from stream and create table if needed
 	schema := stream.Schema()
-	if err := c.createTableIfNeeded(ctx, conn, options.TableName, schema, options); err != nil {
+	if err := c.createTableIfNeeded(ctx, conn, options.CatalogName, options.TableName, schema, options); err != nil {
 		return -1, c.ErrorHelper.WrapIO(err, "failed to create table")
 	}
 
@@ -218,7 +218,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 	}
 
 	insertSQL := fmt.Sprintf("INSERT INTO %s VALUES (%s)",
-		c.QuoteIdentifier(options.TableName),
+		c.QuoteTableID(options.CatalogName, options.TableName),
 		strings.Join(placeholders, ", "))
 
 	// Prepare the statement (once for all batches)
@@ -275,26 +275,35 @@ func (c *singlestoreConnectionImpl) GetPlaceholder(field *arrow.Field, index int
 	return "?"
 }
 
-// QuoteIdentifier quotes a table/column identifier for SQL
+// QuoteTableID quotes a table identifier for SQL
+func (c *singlestoreConnectionImpl) QuoteTableID(database string, table string) string {
+	if database == "" {
+		return c.QuoteIdentifier(table)
+	}
+
+	return c.QuoteIdentifier(database) + "." + c.QuoteIdentifier(table)
+}
+
+// QuoteIdentifier quotes a database/table/column identifier for SQL
 func (c *singlestoreConnectionImpl) QuoteIdentifier(name string) string {
 	return "`" + strings.ReplaceAll(name, "`", "``") + "`"
 }
 
 // createTableIfNeeded creates the table based on the ingest mode
-func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, options *driverbase.BulkIngestOptions) error {
+func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, conn *sqlwrapper.LoggingConn, catalogName string, tableName string, schema *arrow.Schema, options *driverbase.BulkIngestOptions) error {
 	switch options.Mode {
 	case adbc.OptionValueIngestModeCreate:
 		// Create the table (fail if exists)
-		return c.createTable(ctx, conn, tableName, schema, false)
+		return c.createTable(ctx, conn, catalogName, tableName, schema, false, options.Temporary)
 	case adbc.OptionValueIngestModeCreateAppend:
 		// Create the table if it doesn't exist
-		return c.createTable(ctx, conn, tableName, schema, true)
+		return c.createTable(ctx, conn, catalogName, tableName, schema, true, options.Temporary)
 	case adbc.OptionValueIngestModeReplace:
 		// Drop and recreate the table
-		if err := c.dropTable(ctx, conn, tableName); err != nil {
+		if err := c.dropTable(ctx, conn, catalogName, tableName); err != nil {
 			return err
 		}
-		return c.createTable(ctx, conn, tableName, schema, false)
+		return c.createTable(ctx, conn, catalogName, tableName, schema, false, options.Temporary)
 	case adbc.OptionValueIngestModeAppend:
 		// Table should already exist, do nothing
 		return nil
@@ -304,13 +313,18 @@ func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, con
 }
 
 // createTable creates a SingleStore table from Arrow schema
-func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string, schema *arrow.Schema, ifNotExists bool) error {
+func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwrapper.LoggingConn, catalogName string, tableName string, schema *arrow.Schema, ifNotExists bool, temporary bool) error {
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString("CREATE TABLE ")
+	queryBuilder.WriteString("CREATE ")
+	if temporary {
+		queryBuilder.WriteString("TEMPORARY ")
+	}
+	queryBuilder.WriteString("TABLE ")
+
 	if ifNotExists {
 		queryBuilder.WriteString("IF NOT EXISTS ")
 	}
-	queryBuilder.WriteString(c.QuoteIdentifier(tableName))
+	queryBuilder.WriteString(c.QuoteTableID(catalogName, tableName))
 	queryBuilder.WriteString(" (")
 
 	for i, field := range schema.Fields() {
@@ -333,8 +347,8 @@ func (c *singlestoreConnectionImpl) createTable(ctx context.Context, conn *sqlwr
 }
 
 // dropTable drops a SingleStore table
-func (c *singlestoreConnectionImpl) dropTable(ctx context.Context, conn *sqlwrapper.LoggingConn, tableName string) error {
-	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", c.QuoteIdentifier(tableName))
+func (c *singlestoreConnectionImpl) dropTable(ctx context.Context, conn *sqlwrapper.LoggingConn, catalogName string, tableName string) error {
+	dropSQL := fmt.Sprintf("DROP TABLE IF EXISTS %s", c.QuoteTableID(catalogName, tableName))
 	_, err := conn.ExecContext(ctx, dropSQL)
 	return err
 }

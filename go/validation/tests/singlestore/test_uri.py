@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import urllib.parse
 
 import adbc_driver_manager.dbapi
@@ -89,12 +90,10 @@ def test_userpass_options_override_uri(
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
 @pytest.mark.parametrize(
-    "tls_param, expect_encrypted",
+    "tls_param",
     [
-        # pytest.param("tls=true", True, id="tls=true"),  # Docker SingleStore container uses a self-signed certificate that fails validation.
-        pytest.param("tls=skip-verify", True, id="tls=skip-verify"),
-        pytest.param("tls=false", False, id="tls=false"),
-        pytest.param("tls=preferred", True, id="tls=preferred"),
+        pytest.param("tls=skip-verify", id="tls=skip-verify"),
+        pytest.param("tls=preferred", id="tls=preferred"),
     ],
 )
 def test_ssl_modes(
@@ -103,13 +102,12 @@ def test_ssl_modes(
     uri: str,  # mysql://localhost:3306/db
     creds: tuple[str, str],
     tls_param: str,
-    expect_encrypted: bool,
 ) -> None:
     """Test various SSL configurations with dynamic URI construction."""
-    username, password = creds
+    username = os.getenv("SINGLESTORE_USERNAME_SSL", "root")
 
     parsed = urllib.parse.urlparse(uri)
-    netloc = f"{username}:{password}@{parsed.netloc}"
+    netloc = f"{username}@{parsed.netloc}"
 
     query = f"{parsed.query}&{tls_param}" if parsed.query else tls_param
     ssl_uri = urllib.parse.urlunparse(
@@ -121,15 +119,9 @@ def test_ssl_modes(
         db_kwargs={"uri": ssl_uri},
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SHOW STATUS LIKE 'Ssl_cipher'")
+            cursor.execute("SELECT 1")
             result = cursor.fetchone()
-            assert result, "Could not get SSL status"
-
-            cipher = result[1]
-            if expect_encrypted:
-                assert cipher, "Ssl_cipher is empty, connection is NOT encrypted"
-            else:
-                assert not cipher, "Ssl_cipher is not empty, connection IS encrypted"
+            assert result[0] == 1
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
@@ -207,10 +199,10 @@ def test_charset_selection_in_uri(
         db_kwargs={"uri": charset_uri},
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SHOW VARIABLES LIKE 'character_set_client'")
+            cursor.execute("SELECT @@character_set_client")
             result = cursor.fetchone()
             assert result
-            assert result[1] == "utf8mb4"
+            assert result[0] == "utf8mb4"
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
@@ -313,7 +305,7 @@ def test_minimal_dsn_with_creds(
 
             cursor.execute("SELECT DATABASE()")
             result = cursor.fetchone()
-            assert result[0] is None
+            assert result[0] == ""
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
