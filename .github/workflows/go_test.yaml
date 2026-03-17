@@ -101,11 +101,11 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: go
         run: |
-          if [[ -f compose.yaml ]]; then
-            if ! docker compose up --detach --wait test-service; then
+          if [[ -f setup-cluster.sh ]]; then
+            if ! ./setup-cluster.sh; then
               echo "Service failed to start"
               echo "Logs:"
-              docker compose logs test-service
+              docker logs singlestore-integration
               exit 1
             fi
           fi
@@ -206,11 +206,11 @@ jobs:
         if: runner.os == 'Linux'
         working-directory: go
         run: |
-          if [[ -f compose.yaml ]]; then
-            if ! docker compose up --detach --wait test-service; then
+          if [[ -f setup-cluster.sh ]]; then
+            if ! ./setup-cluster.sh; then
               echo "Service failed to start"
               echo "Logs:"
-              docker compose logs test-service
+              docker logs singlestore-integration
               exit 1
             fi
           fi

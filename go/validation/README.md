@@ -20,7 +20,7 @@
 1. Start the Docker container:
 
    ```shell
-   docker compose up --detach --wait
+   ./setup-cluster.sh
    ```
 2. Set the environment variable:
 

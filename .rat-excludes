@@ -15,7 +15,6 @@
 
 .github/pull_request_template.md
 go/go.sum
-go/init.sql
 go/license.tpl
 go/pixi.lock
 go/pkg/adbc.h

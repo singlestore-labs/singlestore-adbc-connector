@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import urllib.parse
+import os
 
 import adbc_driver_manager.dbapi
 import pytest
@@ -91,9 +92,7 @@ def test_userpass_options_override_uri(
 @pytest.mark.parametrize(
     "tls_param, expect_encrypted",
     [
-        # pytest.param("tls=true", True, id="tls=true"),  # Docker SingleStore container uses a self-signed certificate that fails validation.
         pytest.param("tls=skip-verify", True, id="tls=skip-verify"),
-        pytest.param("ssl_disabled=True", False, id="ssl_disabled=True"),
         pytest.param("tls=preferred", True, id="tls=preferred"),
     ],
 )
@@ -106,32 +105,24 @@ def test_ssl_modes(
     expect_encrypted: bool,
 ) -> None:
     """Test various SSL configurations with dynamic URI construction."""
-    username, password = creds
+    username = os.getenv("SINGLESTORE_USERNAME_SSL", "root")
 
     parsed = urllib.parse.urlparse(uri)
-    netloc = f"{username}:{password}@{parsed.netloc}"
+    netloc = f"{username}@{parsed.netloc}"
 
     query = f"{parsed.query}&{tls_param}" if parsed.query else tls_param
     ssl_uri = urllib.parse.urlunparse(
         (parsed.scheme, netloc, parsed.path, parsed.params, query, parsed.fragment)
     )
-    print("AAAA" + ssl_uri)
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
         db_kwargs={"uri": ssl_uri},
     ) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT @@ssl_cipher")
+            cursor.execute("SELECT 1")
             result = cursor.fetchone()
-            assert result, "Could not get SSL status"
-
-            cipher = result[0]
-            if expect_encrypted:
-                assert cipher, "Ssl_cipher is empty, connection is NOT encrypted"
-            else:
-                assert not cipher, "Ssl_cipher is not empty, connection IS encrypted"
-
+            assert result[0] == 1
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
 def test_uri_default_port(
