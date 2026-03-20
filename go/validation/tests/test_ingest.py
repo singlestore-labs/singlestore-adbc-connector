@@ -25,9 +25,8 @@ from . import singlestore
 
 
 def pytest_generate_tests(metafunc) -> None:
-    return adbc_drivers_validation.tests.ingest.generate_tests(
-        singlestore.QUIRKS, metafunc
-    )
+    quirks = [singlestore.get_quirks(metafunc.config.getoption("vendor_version"))]
+    return adbc_drivers_validation.tests.ingest.generate_tests(quirks, metafunc)
 
 
 class TestIngest(adbc_drivers_validation.tests.ingest.TestIngest):
