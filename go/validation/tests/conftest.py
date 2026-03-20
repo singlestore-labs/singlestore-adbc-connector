@@ -24,7 +24,6 @@ from adbc_drivers_validation.tests.conftest import (  # noqa: F401
     conn_factory,
     manual_test,
     noci,
-    pytest_addoption,
     pytest_collection_modifyitems,
 )
 
@@ -33,7 +32,7 @@ from . import singlestore
 
 def pytest_addoption(parser):
     adbc_drivers_validation.tests.conftest.pytest_addoption(parser)
-    parser.addoption("--vendor-version", action="store", default="9.4")
+    parser.addoption("--vendor-version", action="store", default="9.0")
 
 
 @pytest.fixture(scope="session")
