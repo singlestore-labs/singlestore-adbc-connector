@@ -437,18 +437,26 @@ func (c *singlestoreConnectionImpl) SetOption(key string, val string) error {
 	if strings.ToLower(key) == adbc.OptionKeyAutoCommit {
 		switch strings.ToLower(val) {
 		case adbc.OptionValueEnabled:
-			c.Autocommit = true
 			if c.Conn != nil {
 				_, err := c.Conn.ExecContext(context.Background(), "SET AUTOCOMMIT = 1")
+				if err == nil {
+					c.Autocommit = true
+				}
 				return err
 			}
+
+			c.Autocommit = true
 			return nil
 		case adbc.OptionValueDisabled:
-			c.Autocommit = false
 			if c.Conn != nil {
 				_, err := c.Conn.ExecContext(context.Background(), "SET AUTOCOMMIT = 0")
+				if err == nil {
+					c.Autocommit = false
+				}
 				return err
 			}
+
+			c.Autocommit = false
 			return nil
 		default:
 			return c.ErrorHelper.Errorf(adbc.StatusInvalidArgument, "invalid value for autocommit option: expected 'true' or 'false', got '%s'", val)
