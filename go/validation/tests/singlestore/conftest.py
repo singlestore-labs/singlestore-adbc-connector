@@ -16,12 +16,14 @@
 import os
 
 import pytest
+from tests import singlestore
 
 
 def pytest_generate_tests(metafunc) -> None:
+    quirks = singlestore.get_quirks(metafunc.config.getoption("vendor_version"))
     metafunc.parametrize(
         "driver",
-        [pytest.param("singlestore:", id="singlestore")],
+        [f"{quirks.name}:{quirks.short_version}"],
         scope="module",
         indirect=["driver"],
     )

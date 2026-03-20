@@ -13,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import adbc_drivers_validation.tests.connection
 from adbc_drivers_validation.tests.connection import (
     TestConnection,  # noqa: F401
-    generate_tests,
 )
 
 from . import singlestore
 
 
 def pytest_generate_tests(metafunc) -> None:
-    return generate_tests(singlestore.QUIRKS, metafunc)
+    quirks = [singlestore.get_quirks(metafunc.config.getoption("vendor_version"))]
+    return adbc_drivers_validation.tests.connection.generate_tests(quirks, metafunc)
