@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import functools
 import os
 from pathlib import Path
 
@@ -97,4 +98,6 @@ class SingleStoreQuirks(model.DriverQuirks):
         return quirks.split_statement(statement)
 
 
-QUIRKS = [SingleStoreQuirks()]
+@functools.cache
+def get_quirks(version: str) -> model.DriverQuirks:
+    return SingleStoreQuirks()

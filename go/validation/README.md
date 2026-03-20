@@ -17,20 +17,20 @@
 
 # Validation Suite Setup
 
-1. Start the Docker container:
+All following commands must be executed from the `go/` directory.
+
+1. Set environment variables:
 
    ```shell
-    source .env.ci
-   ./setup-cluster.sh
+   source .env.ci
    ```
-2. Set the environment variable:
+2. Start the Docker container:
 
    ```shell
-   export SINGLESTORE_DSN="root:password@tcp(localhost:3306)/db"
+   ./setup-cluster.sh
    ```
 3. Run the tests:
 
    ```shell
-   cd validation
-   pixi run test
+   pixi run validate
    ```

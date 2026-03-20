@@ -15,11 +15,9 @@
   limitations under the License.
 -->
 
-# ADBC Driver for MySQL
+# ADBC Driver for SingleStore
 
-Not affiliated with MySQL or Oracle.
-
-An [ADBC driver](https://arrow.apache.org/adbc/) for MySQL.
+An [ADBC driver](https://arrow.apache.org/adbc/) for SingleStore.
 
 ## Installation
 
@@ -29,11 +27,12 @@ installed by any tool that supports [ADBC](https://arrow.apache.org/adbc/)
 Driver Manifests, such as [dbc](https://columnar.tech/dbc):
 
 ```sh
-dbc install mysql
+dbc install singlestore
 ```
 
 See [Building](#building) if you would rather build the drivers yourself.
 
+<!-- TODO: Create examples of SingleStore ADBC driver usage in various languages, and link to them here.
 ## Usage
 
 See examples for:
@@ -42,6 +41,7 @@ See examples for:
 - [Python](https://github.com/columnar-tech/adbc-quickstarts/tree/main/python/mysql)
 - [R](https://github.com/columnar-tech/adbc-quickstarts/tree/main/r/mysql)
 - [Rust](https://github.com/columnar-tech/adbc-quickstarts/tree/main/rust/mysql)
+-->
 
 ## Building
 
