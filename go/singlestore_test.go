@@ -242,7 +242,7 @@ func (q *SingleStoreQuirks) SupportsExecuteSchema() bool           { return true
 func (q *SingleStoreQuirks) SupportsGetSetOptions() bool           { return true }
 func (q *SingleStoreQuirks) SupportsPartitionedData() bool         { return false }
 func (q *SingleStoreQuirks) SupportsStatistics() bool              { return false }
-func (q *SingleStoreQuirks) SupportsTransactions() bool            { return false }
+func (q *SingleStoreQuirks) SupportsTransactions() bool            { return true }
 func (q *SingleStoreQuirks) SupportsGetParameterSchema() bool      { return false }
 func (q *SingleStoreQuirks) SupportsDynamicParameterBinding() bool { return true }
 

@@ -432,3 +432,48 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 
 	return singlestoreType
 }
+
+func (c *singlestoreConnectionImpl) SetOption(key string, val string) error {
+	if strings.ToLower(key) == adbc.OptionKeyAutoCommit {
+		if strings.ToLower(key) == adbc.OptionKeyAutoCommit {
+			switch strings.ToLower(val) {
+			case "true":
+				c.Autocommit = true
+				return nil
+			case "false":
+				c.Autocommit = false
+				return nil
+			default:
+				return c.ErrorHelper.Errorf(adbc.StatusInvalidArgument, "invalid value for autocommit option: expected 'true' or 'false', got '%s'", val)
+			}
+		}
+		c.Autocommit = strings.ToLower(val) == "true"
+		return nil
+	}
+
+	return c.ConnectionImplBase.SetOption(key, val)
+}
+
+func (c *singlestoreConnectionImpl) Commit(ctx context.Context) error {
+	if c.Autocommit {
+		return c.Base().ErrorHelper.Errorf(
+			adbc.StatusInvalidState,
+			"Commit not supported in auto-commit mode",
+		)
+	}
+
+	_, err := c.Conn.ExecContext(ctx, "COMMIT")
+	return err
+}
+
+func (c *singlestoreConnectionImpl) Rollback(ctx context.Context) error {
+	if c.Autocommit {
+		return c.Base().ErrorHelper.Errorf(
+			adbc.StatusInvalidState,
+			"Rollback not supported in auto-commit mode",
+		)
+	}
+
+	_, err := c.Conn.ExecContext(ctx, "ROLLBACK")
+	return err
+}
