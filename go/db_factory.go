@@ -107,7 +107,7 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 		return f.parseToSingleStoreDSN(baseURI, username, password, autocommit)
 	}
 
-	if username == "" && password == "" {
+	if username == "" && password == "" && autocommit == "" {
 		return baseURI, nil
 	}
 	return f.buildFromNativeDSN(baseURI, username, password, autocommit)
@@ -190,7 +190,11 @@ func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, p
 
 	dsn := cfg.FormatDSN()
 	if u.RawQuery != "" {
-		dsn += "?" + u.RawQuery
+		if autocommit != "" {
+			dsn += "&" + u.RawQuery
+		} else {
+			dsn += "?" + u.RawQuery
+		}
 	}
 
 	return dsn, nil

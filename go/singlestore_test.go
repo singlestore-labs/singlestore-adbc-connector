@@ -1561,6 +1561,12 @@ func TestURIParsing(t *testing.T) {
 			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
 			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=false",
 		},
+		{
+			name:           "autocommit is enabled and additional parameters are provided",
+			autocommit:     "true",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb?charset=utf8",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=true&charset=utf8",
+		},
 		// TCP connection variations
 		{
 			name:           "basic tcp with port",
