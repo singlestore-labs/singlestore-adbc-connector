@@ -1543,10 +1543,24 @@ func TestURIParsing(t *testing.T) {
 		singlestoreURI string
 		username       string
 		password       string
+		autocommit     string
 		expectedDSN    string
 		shouldError    bool
 		errorContains  string
 	}{
+		// autocommit
+		{
+			name:           "autocommit is enabled",
+			autocommit:     "true",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=true",
+		},
+		{
+			name:           "autocommit is disabled",
+			autocommit:     "false",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=false",
+		},
 		// TCP connection variations
 		{
 			name:           "basic tcp with port",
@@ -1736,6 +1750,9 @@ func TestURIParsing(t *testing.T) {
 			}
 			if tt.password != "" {
 				opts[adbc.OptionKeyPassword] = tt.password
+			}
+			if tt.autocommit != "" {
+				opts[adbc.OptionKeyAutoCommit] = tt.autocommit
 			}
 
 			result, err := factory.BuildSingleStoreDSN(opts)
