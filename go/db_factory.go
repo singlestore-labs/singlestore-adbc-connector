@@ -94,6 +94,7 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 	baseURI := opts[adbc.OptionKeyURI]
 	username := opts[adbc.OptionKeyUsername]
 	password := opts[adbc.OptionKeyPassword]
+	autocommit := opts[adbc.OptionKeyAutoCommit]
 
 	// If no base URI provided, this is an error
 	if baseURI == "" {
@@ -103,13 +104,13 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 
 	// Check if this is a SingleStore URI (mysql://)
 	if strings.HasPrefix(baseURI, "mysql://") {
-		return f.parseToSingleStoreDSN(baseURI, username, password)
+		return f.parseToSingleStoreDSN(baseURI, username, password, autocommit)
 	}
 
-	if username == "" && password == "" {
+	if username == "" && password == "" && autocommit == "" {
 		return baseURI, nil
 	}
-	return f.buildFromNativeDSN(baseURI, username, password)
+	return f.buildFromNativeDSN(baseURI, username, password, autocommit)
 }
 
 // parseToSingleStoreDSN converts a SingleStore URI to SingleStore DSN format.
@@ -118,7 +119,7 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 //	mysql://root@localhost:3306/demo → root@tcp(localhost:3306)/demo
 //	mysql://user:pass@host/db?charset=utf8mb4 → user:pass@tcp(host:3306)/db?charset=utf8mb4
 //	mysql://user@(/path/to/socket.sock)/db → user@unix(/path/to/socket.sock)/db
-func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, password string) (string, error) {
+func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, password, autocommit string) (string, error) {
 	u, err := url.Parse(singlestoreURI)
 	if err != nil {
 		return "", fmt.Errorf("invalid SingleStore URI format: %v", err)
@@ -180,16 +181,27 @@ func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, p
 		cfg.DBName = strings.TrimPrefix(dbPath, "/")
 	}
 
+	if autocommit != "" {
+		if cfg.Params == nil {
+			cfg.Params = make(map[string]string)
+		}
+		cfg.Params["autocommit"] = autocommit
+	}
+
 	dsn := cfg.FormatDSN()
 	if u.RawQuery != "" {
-		dsn += "?" + u.RawQuery
+		if autocommit != "" {
+			dsn += "&" + u.RawQuery
+		} else {
+			dsn += "?" + u.RawQuery
+		}
 	}
 
 	return dsn, nil
 }
 
 // buildFromNativeDSN handles SingleStore's native DSN format and plain host strings.
-func (f *SingleStoreDBFactory) buildFromNativeDSN(baseURI, username, password string) (string, error) {
+func (f *SingleStoreDBFactory) buildFromNativeDSN(baseURI, username, password, autocommit string) (string, error) {
 	var cfg *mysql.Config
 	var err error
 
@@ -212,6 +224,13 @@ func (f *SingleStoreDBFactory) buildFromNativeDSN(baseURI, username, password st
 	}
 	if password != "" {
 		cfg.Passwd = password
+	}
+
+	if autocommit != "" {
+		if cfg.Params == nil {
+			cfg.Params = make(map[string]string)
+		}
+		cfg.Params["autocommit"] = autocommit
 	}
 
 	return cfg.FormatDSN(), nil

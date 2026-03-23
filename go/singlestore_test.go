@@ -242,7 +242,7 @@ func (q *SingleStoreQuirks) SupportsExecuteSchema() bool           { return true
 func (q *SingleStoreQuirks) SupportsGetSetOptions() bool           { return true }
 func (q *SingleStoreQuirks) SupportsPartitionedData() bool         { return false }
 func (q *SingleStoreQuirks) SupportsStatistics() bool              { return false }
-func (q *SingleStoreQuirks) SupportsTransactions() bool            { return false }
+func (q *SingleStoreQuirks) SupportsTransactions() bool            { return true }
 func (q *SingleStoreQuirks) SupportsGetParameterSchema() bool      { return false }
 func (q *SingleStoreQuirks) SupportsDynamicParameterBinding() bool { return true }
 
@@ -1543,10 +1543,30 @@ func TestURIParsing(t *testing.T) {
 		singlestoreURI string
 		username       string
 		password       string
+		autocommit     string
 		expectedDSN    string
 		shouldError    bool
 		errorContains  string
 	}{
+		// autocommit
+		{
+			name:           "autocommit is enabled",
+			autocommit:     "true",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=true",
+		},
+		{
+			name:           "autocommit is disabled",
+			autocommit:     "false",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=false",
+		},
+		{
+			name:           "autocommit is enabled and additional parameters are provided",
+			autocommit:     "true",
+			singlestoreURI: "mysql://user:pass@localhost:3306/testdb?charset=utf8",
+			expectedDSN:    "user:pass@tcp(localhost:3306)/testdb?autocommit=true&charset=utf8",
+		},
 		// TCP connection variations
 		{
 			name:           "basic tcp with port",
@@ -1736,6 +1756,9 @@ func TestURIParsing(t *testing.T) {
 			}
 			if tt.password != "" {
 				opts[adbc.OptionKeyPassword] = tt.password
+			}
+			if tt.autocommit != "" {
+				opts[adbc.OptionKeyAutoCommit] = tt.autocommit
 			}
 
 			result, err := factory.BuildSingleStoreDSN(opts)
