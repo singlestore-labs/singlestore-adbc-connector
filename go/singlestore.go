@@ -18,6 +18,7 @@ package singlestore
 import (
 	"context"
 	"database/sql/driver"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -488,6 +489,91 @@ func (m *singlestoreTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, inde
 	default:
 		// For all other types, use default conversion
 		return m.DefaultTypeConverter.ConvertArrowToGo(arrowArray, index, field)
+	}
+}
+
+func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, handled bool) {
+	var err error
+	switch typ.ID() {
+	case arrow.TIMESTAMP:
+		result = make([]string, col.Len())
+		arr := col.(*array.Timestamp)
+		t := typ.(*arrow.TimestampType)
+
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "NULL"
+				continue
+			}
+
+			result[i] = arr.Value(i).ToTime(t.Unit).Format("2006-01-02 15:04:05.999999")
+		}
+		return result, true
+
+	case arrow.STRING_VIEW:
+		result = make([]string, col.Len())
+		arr := col.(*array.StringView)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "NULL"
+				continue
+			}
+
+			result[i] = arr.Value(i)
+		}
+		return result, true
+
+	case arrow.BINARY_VIEW:
+		result = make([]string, col.Len())
+		arr := col.(*array.BinaryView)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "NULL"
+				continue
+			}
+
+			result[i] = base64.StdEncoding.EncodeToString(arr.Value(i))
+		}
+		return result, true
+
+	case arrow.TIME32:
+		result = make([]string, col.Len())
+		arr := col.(*array.Time32)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "NULL"
+				continue
+			}
+
+			value := int64(arr.Value(i))
+			unit := arr.DataType().(*arrow.Time32Type).Unit
+			result[i], err = formatSingleStoreTime(value, unit)
+			if err != nil {
+				return nil, false
+			}
+		}
+		return result, true
+
+	case arrow.TIME64:
+		result = make([]string, col.Len())
+		arr := col.(*array.Time64)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "NULL"
+				continue
+			}
+
+			value := int64(arr.Value(i))
+			unit := arr.DataType().(*arrow.Time64Type).Unit
+			result[i], err = formatSingleStoreTime(value, unit)
+			if err != nil {
+				return nil, false
+			}
+		}
+		return result, true
+
+	default:
+		return nil, false
 	}
 }
 
