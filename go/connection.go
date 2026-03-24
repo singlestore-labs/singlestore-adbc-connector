@@ -220,7 +220,7 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, 
 	go func() {
 		defer func() {
 			if err := pw.Close(); err != nil {
-				logger.Warn("Error closing pipe: %v", err)
+				logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
 			}
 		}()
 
@@ -239,15 +239,15 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, 
 		// Ensure the CSV writer flushes any remaining buffer on exit
 		defer func() {
 			if err := w.Flush(); err != nil {
-				logger.Warn("Error flushing CSV writer: %v", err)
+				logger.Warn(fmt.Sprintf("Error flushing CSV writer: %v", err))
 			}
 		}()
 
 		for stream.Next() {
-			rec := stream.Record()
+			rec := stream.RecordBatch()
 			if err := w.Write(rec); err != nil {
 				if err := pw.CloseWithError(fmt.Errorf("failed to write arrow record to csv: %w", err)); err != nil {
-					logger.Warn("Error closing pipe: %v", err)
+					logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
 				}
 				return
 			}
@@ -255,7 +255,7 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, 
 
 		if err := stream.Err(); err != nil {
 			if err := pw.CloseWithError(fmt.Errorf("arrow record reader error: %w", err)); err != nil {
-				logger.Warn("Error closing pipe: %v", err)
+				logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
 			}
 			return
 		}
