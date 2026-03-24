@@ -231,7 +231,7 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, 
 				}
 				return "0"
 			}),
-			arrowcsv.WithLazyQuotes(false),
+			arrowcsv.WithNullWriter("\\N"),
 			arrowcsv.WithHeader(false),
 			arrowcsv.WithCustomTypeConverter(ConvertArrowToCSV),
 		)
@@ -320,7 +320,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 		"FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' "+
 		"ESCAPED BY '' "+
 		"LINES TERMINATED BY '\n' "+
-		"NULL DEFINED BY 'NULL' "+
+		"NULL DEFINED BY '\\\\N' "+
 		"(%s) "+
 		"%s",
 		readerName,

@@ -502,7 +502,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 
 		for i := 0; i < arr.Len(); i++ {
 			if !arr.IsValid(i) {
-				result[i] = "NULL"
+				result[i] = "\\N"
 				continue
 			}
 
@@ -515,7 +515,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		arr := col.(*array.StringView)
 		for i := 0; i < arr.Len(); i++ {
 			if !arr.IsValid(i) {
-				result[i] = "NULL"
+				result[i] = "\\N"
 				continue
 			}
 
@@ -528,7 +528,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		arr := col.(*array.BinaryView)
 		for i := 0; i < arr.Len(); i++ {
 			if !arr.IsValid(i) {
-				result[i] = "NULL"
+				result[i] = "\\N"
 				continue
 			}
 
@@ -541,7 +541,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		arr := col.(*array.Time32)
 		for i := 0; i < arr.Len(); i++ {
 			if !arr.IsValid(i) {
-				result[i] = "NULL"
+				result[i] = "\\N"
 				continue
 			}
 
@@ -559,7 +559,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		arr := col.(*array.Time64)
 		for i := 0; i < arr.Len(); i++ {
 			if !arr.IsValid(i) {
-				result[i] = "NULL"
+				result[i] = "\\N"
 				continue
 			}
 

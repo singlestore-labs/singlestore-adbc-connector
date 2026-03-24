@@ -421,7 +421,7 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 		},
 		{
 			Name:     "c1",
-			Type:     arrow.BinaryTypes.LargeString,
+			Type:     arrow.BinaryTypes.StringView,
 			Nullable: true,
 		},
 	}, nil)
@@ -430,7 +430,7 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 	defer b.Release()
 
 	b.Field(0).(*array.Int32Builder).AppendValues([]int32{1, 2, 3}, nil)
-	c1Builder := b.Field(1).(*array.LargeStringBuilder)
+	c1Builder := b.Field(1).(*array.StringViewBuilder)
 	c1Builder.AppendNull()
 	c1Builder.Append("NULL")
 	c1Builder.Append("1NULL")
