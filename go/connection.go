@@ -23,7 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"strings"
 
 	"github.com/adbc-drivers/driverbase-go/driverbase"
@@ -213,12 +213,16 @@ func generateReaderName(n int) (string, error) {
 
 // streamArrowAsCSV takes an Arrow RecordReader and streams it out as CSV data.
 // It returns an io.Reader that the SingleStore driver can consume immediately.
-func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader) io.Reader {
+func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, logger *slog.Logger) io.Reader {
 	pr, pw := io.Pipe()
 
 	// Spin up a goroutine to write the Arrow records to the pipe
 	go func() {
-		defer pw.Close()
+		defer func() {
+			if err := pw.Close(); err != nil {
+				logger.Warn("Error closing pipe: %v", err)
+			}
+		}()
 
 		w := arrowcsv.NewWriter(pw, stream.Schema(),
 			arrowcsv.WithBoolWriter(func(b bool) string {
@@ -227,6 +231,7 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader) 
 				}
 				return "0"
 			}),
+			arrowcsv.WithLazyQuotes(false),
 			arrowcsv.WithHeader(false),
 			arrowcsv.WithCustomTypeConverter(ConvertArrowToCSV),
 		)
@@ -234,25 +239,28 @@ func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader) 
 		// Ensure the CSV writer flushes any remaining buffer on exit
 		defer func() {
 			if err := w.Flush(); err != nil {
-				log.Printf("Error flushing CSV writer: %v", err)
+				logger.Warn("Error flushing CSV writer: %v", err)
 			}
 		}()
 
 		for stream.Next() {
 			rec := stream.Record()
 			if err := w.Write(rec); err != nil {
-				pw.CloseWithError(fmt.Errorf("failed to write arrow record to csv: %w", err))
+				if err := pw.CloseWithError(fmt.Errorf("failed to write arrow record to csv: %w", err)); err != nil {
+					logger.Warn("Error closing pipe: %v", err)
+				}
 				return
 			}
 		}
 
 		if err := stream.Err(); err != nil {
-			pw.CloseWithError(fmt.Errorf("arrow record reader error: %w", err))
+			if err := pw.CloseWithError(fmt.Errorf("arrow record reader error: %w", err)); err != nil {
+				logger.Warn("Error closing pipe: %v", err)
+			}
 			return
 		}
 	}()
 
-	// Return the read-end of the pipe immediately
 	return pr
 }
 
@@ -303,7 +311,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 	}
 
 	mysql.RegisterReaderHandler(readerName, func() io.Reader {
-		return c.streamArrowAsCSV(stream)
+		return c.streamArrowAsCSV(stream, conn.Logger)
 	})
 	defer mysql.DeregisterReaderHandler(readerName)
 

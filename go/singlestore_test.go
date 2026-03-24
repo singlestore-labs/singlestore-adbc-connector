@@ -402,6 +402,80 @@ func (s *SingleStoreTests) TestBulkInsertTime() {
 	s.NoError(rdr.Err())
 }
 
+func (s *SingleStoreTests) TestBulkIngestNull() {
+	// Create test table
+	s.NoError(s.stmt.SetSqlQuery(`
+		CREATE TEMPORARY TABLE test_bulk_ingest_null (
+		  id int PRIMARY KEY,
+		  c1 LONGTEXT
+		)
+	`))
+	_, err := s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	schema := arrow.NewSchema([]arrow.Field{
+		{
+			Name:     "id",
+			Type:     arrow.PrimitiveTypes.Int32,
+			Nullable: false,
+		},
+		{
+			Name:     "c1",
+			Type:     arrow.BinaryTypes.LargeString,
+			Nullable: true,
+		},
+	}, nil)
+
+	b := array.NewRecordBuilder(s.Quirks.Alloc(), schema)
+	defer b.Release()
+
+	b.Field(0).(*array.Int32Builder).AppendValues([]int32{1, 2, 3}, nil)
+	c1Builder := b.Field(1).(*array.LargeStringBuilder)
+	c1Builder.AppendNull()
+	c1Builder.Append("NULL")
+	c1Builder.Append("1NULL")
+
+	rec := b.NewRecordBatch()
+	defer rec.Release()
+
+	stream, err := array.NewRecordReader(schema, []arrow.RecordBatch{rec})
+	s.NoError(err)
+	defer stream.Release()
+
+	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestTargetTable, "test_bulk_ingest_null"))
+	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
+	s.NoError(s.stmt.BindStream(s.ctx, stream))
+	_, err = s.stmt.ExecuteUpdate(s.ctx)
+	s.NoError(err)
+
+	s.NoError(s.stmt.SetSqlQuery("SELECT id, c1 FROM test_bulk_ingest_null ORDER BY id"))
+
+	rdr, rows, err := s.stmt.ExecuteQuery(s.ctx)
+	s.NoError(err)
+	defer rdr.Release()
+
+	s.Equal(int64(-1), rows)
+	s.Truef(rdr.Next(), "no record, error? %s", rdr.Err())
+
+	out := rdr.RecordBatch()
+	s.NotNil(out)
+	s.Equal(int64(3), out.NumRows())
+	s.Equal(int64(2), out.NumCols())
+
+	idCol := out.Column(0).(*array.Int32)
+	s.Equal(int32(1), idCol.Value(0))
+	s.Equal(int32(2), idCol.Value(1))
+	s.Equal(int32(3), idCol.Value(2))
+
+	c1Col := out.Column(1).(*array.LargeString)
+	s.True(c1Col.IsNull(0))
+	s.Equal("NULL", c1Col.Value(1))
+	s.Equal("1NULL", c1Col.Value(2))
+
+	s.False(rdr.Next())
+	s.NoError(rdr.Err())
+}
+
 func (s *SingleStoreTests) TestSelect() {
 	// Create test table with various SingleStore types including spatial
 	s.NoError(s.stmt.SetSqlQuery(`
