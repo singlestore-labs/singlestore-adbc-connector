@@ -23,7 +23,7 @@ DEFAULT_SINGLESTORE_VERSION=""
 VERSION="${SINGLESTORE_VERSION:-$DEFAULT_SINGLESTORE_VERSION}"
 IMAGE_NAME="ghcr.io/singlestore-labs/singlestoredb-dev:latest"
 CONTAINER_NAME="singlestore-integration"
-SSL_DIR="${PWD}/ssl"
+SSL_DIR="${PWD}/go/ssl"
 
 rm -rf "${SSL_DIR}"
 mkdir -p "${SSL_DIR}"
