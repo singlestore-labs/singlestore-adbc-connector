@@ -1,0 +1,6 @@
+ADBC Driver for SingleStore
+Copyright 2025 ADBC Drivers Contributors
+Copyright (c) 2026 SingleStore, Inc.
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
