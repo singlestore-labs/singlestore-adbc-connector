@@ -17,16 +17,22 @@ package singlestore
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"strings"
 
 	"github.com/adbc-drivers/driverbase-go/driverbase"
-	sqlwrapper "github.com/adbc-drivers/driverbase-go/sqlwrapper"
+	"github.com/adbc-drivers/driverbase-go/sqlwrapper"
 	"github.com/apache/arrow-adbc/go/adbc"
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	arrowcsv "github.com/apache/arrow-go/v18/arrow/csv"
+	mysql "github.com/memsql/go-singlestore-driver"
 )
 
 // GetCurrentCatalog implements driverbase.CurrentNamespacer.
@@ -197,77 +203,143 @@ func (c *singlestoreConnectionImpl) ListTableTypes(ctx context.Context) ([]strin
 	}, nil
 }
 
-// ExecuteBulkIngest performs SingleStore bulk ingest using INSERT statements
+func generateReaderName(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return "stream_" + hex.EncodeToString(b), nil
+}
+
+// streamArrowAsCSV takes an Arrow RecordReader and streams it out as CSV data.
+// It returns an io.Reader that the SingleStore driver can consume immediately.
+func (c *singlestoreConnectionImpl) streamArrowAsCSV(stream array.RecordReader, logger *slog.Logger) io.Reader {
+	pr, pw := io.Pipe()
+
+	// Spin up a goroutine to write the Arrow records to the pipe
+	go func() {
+		defer func() {
+			if err := pw.Close(); err != nil {
+				logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
+			}
+		}()
+
+		w := arrowcsv.NewWriter(pw, stream.Schema(),
+			arrowcsv.WithBoolWriter(func(b bool) string {
+				if b {
+					return "1"
+				}
+				return "0"
+			}),
+			arrowcsv.WithNullWriter("\\N"),
+			arrowcsv.WithHeader(false),
+			arrowcsv.WithCustomTypeConverter(ConvertArrowToCSV),
+		)
+
+		// Ensure the CSV writer flushes any remaining buffer on exit
+		defer func() {
+			if err := w.Flush(); err != nil {
+				logger.Warn(fmt.Sprintf("Error flushing CSV writer: %v", err))
+			}
+		}()
+
+		for stream.Next() {
+			rec := stream.RecordBatch()
+			if err := w.Write(rec); err != nil {
+				if err := pw.CloseWithError(fmt.Errorf("failed to write arrow record to csv: %w", err)); err != nil {
+					logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
+				}
+				return
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			if err := pw.CloseWithError(fmt.Errorf("arrow record reader error: %w", err)); err != nil {
+				logger.Warn(fmt.Sprintf("Error closing pipe: %v", err))
+			}
+			return
+		}
+	}()
+
+	return pr
+}
+
+func (c *singlestoreConnectionImpl) generateTmpVarName(column string) string {
+	return fmt.Sprintf("@%s", c.QuoteIdentifier(column+"_tmp"))
+}
+
+func (c *singlestoreConnectionImpl) generateSetClause(schema *arrow.Schema) (string, string) {
+	columns := make([]string, 0)
+	setClauses := make([]string, 0)
+
+	for _, field := range schema.Fields() {
+		switch field.Type.ID() {
+		case arrow.BINARY, arrow.LARGE_BINARY, arrow.FIXED_SIZE_BINARY, arrow.BINARY_VIEW:
+			varName := c.generateTmpVarName(field.Name)
+			columns = append(columns, varName)
+
+			setExpr := fmt.Sprintf("%s = FROM_BASE64(%s)", c.QuoteIdentifier(field.Name), varName)
+			setClauses = append(setClauses, setExpr)
+		default:
+			columns = append(columns, c.QuoteIdentifier(field.Name))
+		}
+	}
+
+	setClause := strings.Join(setClauses, ", ")
+	if setClause != "" {
+		setClause = "SET " + setClause
+	}
+
+	return strings.Join(columns, ", "), setClause
+}
+
+// ExecuteBulkIngest performs SingleStore bulk ingest using LOAD DATA statements
 func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn *sqlwrapper.LoggingConn, options *driverbase.BulkIngestOptions, stream array.RecordReader) (rowCount int64, err error) {
 	if stream == nil {
 		return -1, c.ErrorHelper.InvalidArgument("stream cannot be nil")
 	}
 
-	var totalRowsInserted int64
-
-	// Get schema from stream and create table if needed
+	// Get schema from the stream and create a table if needed
 	schema := stream.Schema()
 	if err := c.createTableIfNeeded(ctx, conn, options.CatalogName, options.TableName, schema, options); err != nil {
 		return -1, c.ErrorHelper.WrapIO(err, "failed to create table")
 	}
 
-	// Build INSERT statement (once for all batches)
-	var placeholders []string
-	for i, field := range schema.Fields() {
-		placeholders = append(placeholders, c.GetPlaceholder(&field, i))
-	}
-
-	insertSQL := fmt.Sprintf("INSERT INTO %s VALUES (%s)",
-		c.QuoteTableID(options.CatalogName, options.TableName),
-		strings.Join(placeholders, ", "))
-
-	// Prepare the statement (once for all batches)
-	stmt, err := conn.PrepareContext(ctx, insertSQL)
+	readerName, err := generateReaderName(10)
 	if err != nil {
-		return -1, c.ErrorHelper.WrapIO(err, "failed to prepare insert statement")
-	}
-	defer func() {
-		err = errors.Join(err, stmt.Close())
-	}()
-
-	params := make([]any, len(schema.Fields()))
-
-	// Process each record batch in the stream
-	for stream.Next() {
-		record := stream.RecordBatch()
-
-		// Insert each row
-		rowsInBatch := int(record.NumRows())
-		for rowIdx := range rowsInBatch {
-			for colIdx := range int(record.NumCols()) {
-				arr := record.Column(colIdx)
-				field := schema.Field(colIdx)
-
-				// Use type converter to get Go value
-				value, err := c.TypeConverter.ConvertArrowToGo(arr, rowIdx, &field)
-				if err != nil {
-					return -1, c.ErrorHelper.WrapIO(err, "failed to convert value at row %d, col %d", rowIdx, colIdx)
-				}
-				params[colIdx] = value
-			}
-
-			// Execute the insert
-			_, err := stmt.ExecContext(ctx, params...)
-			if err != nil {
-				return -1, c.ErrorHelper.WrapIO(err, "failed to execute insert")
-			}
-		}
-
-		// Track rows inserted in this batch
-		totalRowsInserted += int64(rowsInBatch)
+		return -1, c.ErrorHelper.WrapIO(err, "failed to generate reader name")
 	}
 
-	// Check for stream errors
-	if err := stream.Err(); err != nil {
-		return -1, c.ErrorHelper.WrapIO(err, "stream error")
+	mysql.RegisterReaderHandler(readerName, func() io.Reader {
+		return c.streamArrowAsCSV(stream, conn.Logger)
+	})
+	defer mysql.DeregisterReaderHandler(readerName)
+
+	columns, setClauses := c.generateSetClause(schema)
+	loadDataQuery := fmt.Sprintf("LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s "+
+		"FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' "+
+		"ESCAPED BY '\\\\' "+
+		"LINES TERMINATED BY '\n' "+
+		"NULL DEFINED BY '\\\\N' "+
+		"(%s) "+
+		"%s",
+		readerName,
+		c.QuoteTableID(options.CatalogName, options.TableName),
+		columns,
+		setClauses,
+	)
+
+	result, err := conn.ExecContext(ctx, loadDataQuery)
+	if err != nil {
+		return -1, c.ErrorHelper.WrapIO(err, "failed to load data")
 	}
 
-	return totalRowsInserted, nil
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return -1, c.ErrorHelper.WrapIO(err, "failed to get rows affected")
+	}
+
+	return rowsAffected, nil
 }
 
 // GetPlaceholder returns the SQL placeholder for a field at the given parameter index (0-based)

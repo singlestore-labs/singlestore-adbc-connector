@@ -23,7 +23,7 @@ DEFAULT_SINGLESTORE_VERSION=""
 VERSION="${SINGLESTORE_VERSION:-$DEFAULT_SINGLESTORE_VERSION}"
 IMAGE_NAME="ghcr.io/singlestore-labs/singlestoredb-dev:latest"
 CONTAINER_NAME="singlestore-integration"
-SSL_DIR="${PWD}/ssl"
+SSL_DIR="${PWD}/go/ssl"
 
 rm -rf "${SSL_DIR}"
 mkdir -p "${SSL_DIR}"
@@ -62,7 +62,7 @@ fi
 
 docker run -d \
     --name ${CONTAINER_NAME} \
-    -v ${PWD}/ssl:/test-ssl \
+    -v ${SSL_DIR}:/test-ssl \
     -e ROOT_PASSWORD=${SINGLESTORE_PASSWORD} \
     -e SINGLESTORE_VERSION=${SINGLESTORE_VERSION} \
     -p ${SINGLESTORE_PORT}:3306 \
@@ -71,7 +71,7 @@ docker run -d \
 singlestore-wait-start() {
   echo -n "Waiting for SingleStore to start..."
   while true; do
-      if mysql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "select 1" >/dev/null 2>/dev/null; then
+      if docker exec ${CONTAINER_NAME} memsql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "select 1" >/dev/null 2>/dev/null; then
           break
       fi
       echo -n "."
@@ -95,15 +95,15 @@ docker restart ${CONTAINER_NAME}
 singlestore-wait-start
 
 echo "Setting up SSL user"
-mysql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create user \"${SINGLESTORE_USERNAME_SSL}\"@\"%\" require ssl"
-mysql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "grant all privileges on *.* to \"${SINGLESTORE_USERNAME_SSL}\"@\"%\" require ssl with grant option"
+docker exec ${CONTAINER_NAME} memsql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create user \"${SINGLESTORE_USERNAME_SSL}\"@\"%\" require ssl"
+docker exec ${CONTAINER_NAME} memsql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "grant all privileges on *.* to \"${SINGLESTORE_USERNAME_SSL}\"@\"%\" require ssl with grant option"
 echo "Done!"
 
 sleep 0.5
 echo
 
 # create the database used in tests
-mysql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create database if not exists db"
-mysql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create database if not exists db2"
+docker exec ${CONTAINER_NAME} memsql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create database if not exists db"
+docker exec ${CONTAINER_NAME} memsql -u root -h ${SINGLESTORE_HOST} -P ${SINGLESTORE_PORT} -p"${SINGLESTORE_PASSWORD}" -e "create database if not exists db2"
 
 echo "Done!"
