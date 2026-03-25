@@ -550,6 +550,9 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		return result, true
 
 	case arrow.BINARY_VIEW:
+		// Convert BINARY_VIEW values to base64.
+		// BINARY, FIXED_SIZE_BINARY, and LARGE_BINARY are intentionally excluded,
+		// since the default converter already serializes them as base64.
 		result = make([]string, col.Len())
 		arr := col.(*array.BinaryView)
 		for i := 0; i < arr.Len(); i++ {
