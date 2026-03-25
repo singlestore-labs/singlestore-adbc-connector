@@ -318,7 +318,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 	columns, setClauses := c.generateSetClause(schema)
 	loadDataQuery := fmt.Sprintf("LOAD DATA LOCAL INFILE 'Reader::%s' INTO TABLE %s "+
 		"FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' "+
-		"ESCAPED BY '' "+
+		"ESCAPED BY '\\\\' "+
 		"LINES TERMINATED BY '\n' "+
 		"NULL DEFINED BY '\\\\N' "+
 		"(%s) "+

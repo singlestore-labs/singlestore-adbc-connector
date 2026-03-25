@@ -510,6 +510,32 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 		}
 		return result, true
 
+	case arrow.STRING:
+		result = make([]string, col.Len())
+		arr := col.(*array.String)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "\\N"
+				continue
+			}
+
+			result[i] = strings.ReplaceAll(arr.Value(i), `\`, `\\`)
+		}
+		return result, true
+
+	case arrow.LARGE_STRING:
+		result = make([]string, col.Len())
+		arr := col.(*array.LargeString)
+		for i := 0; i < arr.Len(); i++ {
+			if !arr.IsValid(i) {
+				result[i] = "\\N"
+				continue
+			}
+
+			result[i] = strings.ReplaceAll(arr.Value(i), `\`, `\\`)
+		}
+		return result, true
+
 	case arrow.STRING_VIEW:
 		result = make([]string, col.Len())
 		arr := col.(*array.StringView)
@@ -519,7 +545,7 @@ func ConvertArrowToCSV(typ arrow.DataType, col arrow.Array) (result []string, ha
 				continue
 			}
 
-			result[i] = arr.Value(i)
+			result[i] = strings.ReplaceAll(arr.Value(i), `\`, `\\`)
 		}
 		return result, true
 
