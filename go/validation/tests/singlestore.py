@@ -38,8 +38,8 @@ class SingleStoreQuirks(model.DriverQuirks):
         get_objects=True,
         get_objects_constraints_check=False,
         get_objects_constraints_foreign=False,
-        get_objects_constraints_primary=False,  # TODO: PLAT-7798
-        get_objects_constraints_unique=False,  # TODO: PLAT-7798
+        get_objects_constraints_primary=True,
+        get_objects_constraints_unique=True,
         statement_bind=True,
         statement_prepare=True,
         statement_bulk_ingest=True,
@@ -97,6 +97,18 @@ class SingleStoreQuirks(model.DriverQuirks):
     def split_statement(self, statement: str) -> list[str]:
         return quirks.split_statement(statement)
 
+    @property
+    def sample_ddl_constraints(self) -> list[str]:
+        return [
+            "DROP TABLE IF EXISTS constraint_unique",
+            "CREATE ROWSTORE TABLE constraint_unique (a INT, b INT, UNIQUE (a), UNIQUE (b, a), SHARD KEY (a))",
+            "DROP TABLE IF EXISTS constraint_primary",
+            "CREATE TABLE constraint_primary (a INT PRIMARY KEY)",
+            "DROP TABLE IF EXISTS constraint_primary_multi",
+            "CREATE TABLE constraint_primary_multi (a INT, b INT, PRIMARY KEY(b, a))",
+            "DROP TABLE IF EXISTS constraint_primary_multi2",
+            "CREATE TABLE constraint_primary_multi2 (a INT, b INT, PRIMARY KEY(a, b))",
+        ]
 
 @functools.cache
 def get_quirks(version: str) -> model.DriverQuirks:
