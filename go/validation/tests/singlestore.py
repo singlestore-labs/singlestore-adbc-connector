@@ -110,6 +110,7 @@ class SingleStoreQuirks(model.DriverQuirks):
             "CREATE TABLE constraint_primary_multi2 (a INT, b INT, PRIMARY KEY(a, b))",
         ]
 
+
 @functools.cache
 def get_quirks(version: str) -> model.DriverQuirks:
     return SingleStoreQuirks()

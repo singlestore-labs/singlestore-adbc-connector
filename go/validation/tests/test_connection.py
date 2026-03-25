@@ -13,20 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import adbc_driver_manager.dbapi
 import adbc_drivers_validation.tests.connection
-from adbc_drivers_validation.tests.connection import (
-    TestConnection,  # noqa: F401
-)
+from adbc_drivers_validation import compare, model
 
 from . import singlestore
-from adbc_drivers_validation import model, compare
-import adbc_driver_manager.dbapi
-
 
 
 def pytest_generate_tests(metafunc) -> None:
     quirks = [singlestore.get_quirks(metafunc.config.getoption("vendor_version"))]
     return adbc_drivers_validation.tests.connection.generate_tests(quirks, metafunc)
+
 
 class TestConnection(adbc_drivers_validation.tests.connection.TestConnection):
     def test_get_objects_constraints_unique(
