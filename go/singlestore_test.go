@@ -429,12 +429,14 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 	b := array.NewRecordBuilder(s.Quirks.Alloc(), schema)
 	defer b.Release()
 
-	b.Field(0).(*array.Int32Builder).AppendValues([]int32{1, 2, 3, 4}, nil)
+	b.Field(0).(*array.Int32Builder).AppendValues([]int32{1, 2, 3, 4, 5, 6}, nil)
 	c1Builder := b.Field(1).(*array.StringViewBuilder)
 	c1Builder.AppendNull()
 	c1Builder.Append("NULL")
 	c1Builder.Append("1NULL")
 	c1Builder.Append("\n\t")
+	c1Builder.Append("\"who is this?\"")
+	c1Builder.Append("my \"name\" is")
 
 	rec := b.NewRecordBatch()
 	defer rec.Release()
@@ -460,7 +462,7 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 
 	out := rdr.RecordBatch()
 	s.NotNil(out)
-	s.Equal(int64(4), out.NumRows())
+	s.Equal(int64(6), out.NumRows())
 	s.Equal(int64(2), out.NumCols())
 
 	idCol := out.Column(0).(*array.Int32)
@@ -468,12 +470,16 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 	s.Equal(int32(2), idCol.Value(1))
 	s.Equal(int32(3), idCol.Value(2))
 	s.Equal(int32(4), idCol.Value(3))
+	s.Equal(int32(5), idCol.Value(4))
+	s.Equal(int32(6), idCol.Value(5))
 
 	c1Col := out.Column(1).(*array.LargeString)
 	s.True(c1Col.IsNull(0))
 	s.Equal("NULL", c1Col.Value(1))
 	s.Equal("1NULL", c1Col.Value(2))
 	s.Equal("\n\t", c1Col.Value(3))
+	s.Equal("\"who is this?\"", c1Col.Value(4))
+	s.Equal("my \"name\" is", c1Col.Value(5))
 
 	s.False(rdr.Next())
 	s.NoError(rdr.Err())

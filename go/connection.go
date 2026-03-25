@@ -293,7 +293,7 @@ func (c *singlestoreConnectionImpl) generateSetClause(schema *arrow.Schema) (str
 	return strings.Join(columns, ", "), setClause
 }
 
-// ExecuteBulkIngest performs SingleStore bulk ingest using INSERT statements
+// ExecuteBulkIngest performs SingleStore bulk ingest using LOAD DATA statements
 func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn *sqlwrapper.LoggingConn, options *driverbase.BulkIngestOptions, stream array.RecordReader) (rowCount int64, err error) {
 	if stream == nil {
 		return -1, c.ErrorHelper.InvalidArgument("stream cannot be nil")
