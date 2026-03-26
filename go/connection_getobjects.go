@@ -98,7 +98,7 @@ func getConstraintType(constraintName string) string {
 	return "UNIQUE"
 }
 
-func (c *singlestoreConnectionImpl) getTableConstrains(ctx context.Context, catalog string, table string) ([]driverbase.ConstraintInfo, error) {
+func (c *singlestoreConnectionImpl) getTableConstrains(ctx context.Context, catalog string, table string) (constrains []driverbase.ConstraintInfo, err error) {
 	query := `
 		SELECT
 		    CONSTRAINT_NAME,
