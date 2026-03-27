@@ -90,6 +90,69 @@ func (c *singlestoreConnectionImpl) GetTablesForDBSchema(ctx context.Context, ca
 	return c.getTablesOnly(ctx, catalog, schema, tableFilter)
 }
 
+func getConstraintType(constraintName string) string {
+	if constraintName == "PRIMARY" {
+		return "PRIMARY KEY"
+	}
+
+	return "UNIQUE"
+}
+
+func (c *singlestoreConnectionImpl) getTableConstrains(ctx context.Context, catalog string, table string) (constrains []driverbase.ConstraintInfo, err error) {
+	query := `
+		SELECT
+		    CONSTRAINT_NAME,
+		    COLUMN_NAME,
+		    ORDINAL_POSITION
+		FROM information_schema.KEY_COLUMN_USAGE
+		WHERE TABLE_SCHEMA = ?
+		AND TABLE_NAME = ?
+		ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION`
+
+	rows, err := c.Db.QueryContext(ctx, query, catalog, table)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err = errors.Join(err, rows.Close())
+	}()
+
+	var res []driverbase.ConstraintInfo
+	var currentConstraint *driverbase.ConstraintInfo = nil
+
+	for rows.Next() {
+		var constraintName, columnName string
+		var ordinalPosition int32
+		if err := rows.Scan(&constraintName, &columnName, &ordinalPosition); err != nil {
+			return nil, err
+		}
+
+		if currentConstraint == nil || *currentConstraint.ConstraintName != constraintName {
+			if currentConstraint != nil {
+				res = append(res, *currentConstraint)
+			}
+
+			nameCopy := constraintName
+			currentConstraint = &driverbase.ConstraintInfo{
+				ConstraintName:        &nameCopy,
+				ConstraintType:        getConstraintType(nameCopy),
+				ConstraintColumnNames: make([]string, 0),
+			}
+		}
+
+		currentConstraint.ConstraintColumnNames = append(currentConstraint.ConstraintColumnNames, columnName)
+	}
+
+	if currentConstraint != nil {
+		res = append(res, *currentConstraint)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 // getTablesOnly retrieves table information without columns
 func (c *singlestoreConnectionImpl) getTablesOnly(ctx context.Context, catalog string, schema string, tableFilter *string) (tables []driverbase.TableInfo, err error) {
 	// In SingleStore JDBC, catalog is the database name and schema should be empty
@@ -279,7 +342,12 @@ func (c *singlestoreConnectionImpl) getTablesWithColumns(ctx context.Context, ca
 		return nil, c.ErrorHelper.WrapIO(err, "error during table with columns iteration")
 	}
 
-	// TODO: Add constraint and foreign key metadata support
+	for i := range tables {
+		tables[i].TableConstraints, err = c.getTableConstrains(ctx, catalog, tables[i].TableName)
+		if err != nil {
+			return nil, c.ErrorHelper.WrapIO(err, "failed to query table constraints for table %s in catalog %s", tables[i].TableName, catalog)
+		}
+	}
 
 	return tables, err
 }
