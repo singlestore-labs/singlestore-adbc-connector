@@ -60,7 +60,7 @@ The standard MySQL URI format, following MySQL's official specification (SingleS
 mysql://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=value2...]
 ```
 
-**Examples:**
+Examples:
 
 - `mysql://localhost/mydb`
 - `mysql://user:pass@localhost:3306/mydb`
@@ -68,7 +68,7 @@ mysql://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=v
 - `mysql://user@(/path/to/socket.sock)/db` (Unix domain socket)
 - `mysql://user@localhost/mydb` (no password)
 
-**URI Components:**
+URI Components:
 - `scheme`: `mysql://` (required)
 - `user`: Optional (for authentication)
 - `password`: Optional (for authentication, requires user)
@@ -81,7 +81,7 @@ mysql://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=v
 Reserved characters in URI elements must be URI-encoded. For example, `@` becomes `%40`. If you include a zone ID in an IPv6 address, the `%` character used as the separator must be replaced with `%25`.
 :::
 
-**Unix Domain Sockets:**
+Unix Domain Sockets:
 When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `mysql://user@(/path/to/socket.sock)/db`
 
 For complete details, see MySQL's [URI-like connection string format](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connecting-using-uri) and [Connection Parameters](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connection-parameters-base) documentation.
@@ -94,7 +94,7 @@ The driver also accepts the DSN format used by the [Go SingleStore Driver](https
 [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
 ```
 
-**Examples:**
+Examples:
 
 - `user:pass@tcp(localhost:3306)/mydb`
 - `user@tcp(127.0.0.1:3306)/mydb`
