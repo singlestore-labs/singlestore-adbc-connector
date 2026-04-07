@@ -41,7 +41,7 @@ from adbc_driver_manager import dbapi
 conn = dbapi.connect(
   driver="singlestore",
   db_kwargs = {
-    "uri": "root@tcp(localhost:3306)/demo"
+    "uri": "mysql://root@localhost:3306/demo"
   }
 )
 ```
@@ -50,13 +50,17 @@ Note: The example above is for Python using the [adbc-driver-manager](https://py
 
 ### Connection String Format
 
-Connection strings are passed with the `uri` option which uses the following format:
+Connection strings are passed with the `uri` option. The driver supports two formats:
+
+#### MySQL URI Format (Recommended)
+
+The standard MySQL URI format, following MySQL's official specification (SingleStore is MySQL-compatible):
 
 ```text
 mysql://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=value2...]
 ```
 
-Examples:
+**Examples:**
 
 - `mysql://localhost/mydb`
 - `mysql://user:pass@localhost:3306/mydb`
@@ -64,9 +68,7 @@ Examples:
 - `mysql://user@(/path/to/socket.sock)/db` (Unix domain socket)
 - `mysql://user@localhost/mydb` (no password)
 
-This follows MySQL's official [URI-like connection string format](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connecting-using-uri). Also see [MySQL Connection Parameters](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connection-parameters-base) for the complete specification.
-
-Components:
+**URI Components:**
 - `scheme`: `mysql://` (required)
 - `user`: Optional (for authentication)
 - `password`: Optional (for authentication, requires user)
@@ -79,9 +81,26 @@ Components:
 Reserved characters in URI elements must be URI-encoded. For example, `@` becomes `%40`. If you include a zone ID in an IPv6 address, the `%` character used as the separator must be replaced with `%25`.
 :::
 
-When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `(/path/to/socket.sock)`.
+**Unix Domain Sockets:**
+When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `mysql://user@(/path/to/socket.sock)/db`
 
-The driver also supports the SingleStore DSN format (see [Go SingleStore Driver documentation](https://github.com/singlestore-labs/go-singlestore-driver?tab=readme-ov-file#dsn-data-source-name)), but standard URIs are recommended.
+For complete details, see MySQL's [URI-like connection string format](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connecting-using-uri) and [Connection Parameters](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connection-parameters-base) documentation.
+
+#### SingleStore DSN Format (Alternative)
+
+The driver also accepts the DSN format used by the [Go SingleStore Driver](https://github.com/singlestore-labs/go-singlestore-driver):
+
+```text
+[username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
+```
+
+**Examples:**
+
+- `user:pass@tcp(localhost:3306)/mydb`
+- `user@tcp(127.0.0.1:3306)/mydb`
+- `user:pass@unix(/tmp/mysql.sock)/mydb`
+
+This format is used internally by the driver and may be convenient if you're already familiar with the Go SingleStore driver. However, the MySQL URI format is recommended for better alignment with MySQL's official documentation and tooling.
 
 ## Feature & Type Support
 
