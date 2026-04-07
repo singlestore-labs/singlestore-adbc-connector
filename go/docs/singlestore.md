@@ -88,7 +88,7 @@ For complete details, see MySQL's [URI-like connection string format](https://de
 
 #### SingleStore DSN Format (Alternative)
 
-The driver also accepts the DSN format used by the [Go SingleStore Driver](https://github.com/singlestore-labs/go-singlestore-driver):
+The driver also accepts the [Go SingleStore Driver DSN format](https://github.com/singlestore-labs/go-singlestore-driver?tab=readme-ov-file#dsn-data-source-name):
 
 ```text
 [username[:password]@][protocol[(address)]]/dbname[?param1=value1&...&paramN=valueN]
@@ -99,8 +99,6 @@ Examples:
 - `user:pass@tcp(localhost:3306)/mydb`
 - `user@tcp(127.0.0.1:3306)/mydb`
 - `user:pass@unix(/tmp/mysql.sock)/mydb`
-
-This format is used internally by the driver and may be convenient if you're already familiar with the Go SingleStore driver. However, the MySQL URI format is recommended for better alignment with MySQL's official documentation and tooling.
 
 ## Feature & Type Support
 
