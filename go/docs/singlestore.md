@@ -41,7 +41,7 @@ from adbc_driver_manager import dbapi
 conn = dbapi.connect(
   driver="singlestore",
   db_kwargs = {
-    "uri": "mysql://root@localhost:3306/demo"
+    "uri": "singlestore://root@localhost:3306/demo"
   }
 )
 ```
@@ -52,24 +52,24 @@ Note: The example above is for Python using the [adbc-driver-manager](https://py
 
 Connection strings are passed with the `uri` option. The driver supports two formats:
 
-#### MySQL URI Format (Recommended)
+#### SingleStore URI Format (Recommended)
 
-The standard MySQL URI format, following MySQL's official specification (SingleStore is MySQL-compatible):
+The standard URI format with the `singlestore://` scheme:
 
 ```text
-mysql://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=value2...]
+singlestore://[user[:[password]]@]host[:port][/schema][?attribute1=value1&attribute2=value2...]
 ```
 
 Examples:
 
-- `mysql://localhost/mydb`
-- `mysql://user:pass@localhost:3306/mydb`
-- `mysql://user:pass@host/db?charset=utf8mb4&timeout=30s`
-- `mysql://user@(/path/to/socket.sock)/db` (Unix domain socket)
-- `mysql://user@localhost/mydb` (no password)
+- `singlestore://localhost/mydb`
+- `singlestore://user:pass@localhost:3306/mydb`
+- `singlestore://user:pass@host/db?charset=utf8mb4&timeout=30s`
+- `singlestore://user@(/path/to/socket.sock)/db` (Unix domain socket)
+- `singlestore://user@localhost/mydb` (no password)
 
 URI Components:
-- `scheme`: `mysql://` (required)
+- `scheme`: `singlestore://` (required; `mysql://` also supported for compatibility)
 - `user`: Optional (for authentication)
 - `password`: Optional (for authentication, requires user)
 - `host`: Required (must be explicitly specified)
@@ -82,11 +82,11 @@ Reserved characters in URI elements must be URI-encoded. For example, `@` become
 :::
 
 Unix Domain Sockets:
-When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `mysql://user@(/path/to/socket.sock)/db`
+When connecting via Unix domain sockets, use the parentheses syntax to wrap the socket path: `singlestore://user@(/path/to/socket.sock)/db`
 
-For complete details, see MySQL's [URI-like connection string format](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connecting-using-uri) and [Connection Parameters](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connection-parameters-base) documentation.
+The URI format follows MySQL's specification (since SingleStore is MySQL-compatible) but uses the `singlestore://` scheme. For complete details, see MySQL's [URI-like connection string format](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connecting-using-uri) and [Connection Parameters](https://dev.mysql.com/doc/refman/8.4/en/connecting-using-uri-or-key-value-pairs.html#connection-parameters-base) documentation.
 
-#### SingleStore DSN Format (Alternative)
+#### Go SingleStore Driver DSN Format (Alternative)
 
 The driver also accepts the [Go SingleStore Driver DSN format](https://github.com/singlestore-labs/go-singlestore-driver?tab=readme-ov-file#dsn-data-source-name):
 
