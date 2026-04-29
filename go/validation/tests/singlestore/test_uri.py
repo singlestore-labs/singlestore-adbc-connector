@@ -125,23 +125,25 @@ def test_ssl_modes(
 
 
 @pytest.mark.feature(group="Configuration", name="Connect with URI")
-def test_uri_default_port(
+def test_mysql_uri_with_explicit_port(
     driver: model.DriverQuirks,
     driver_path: str,
     singlestore_host: str,
+    singlestore_port: str,
     singlestore_database: str,
     creds: tuple[str, str],
 ) -> None:
-    """Tests that a URI without a port connects using default 3306."""
+    """Tests mysql:// URI connection using host and port from the test environment."""
     username, password = creds
 
-    no_port_uri = (
-        f"mysql://{username}:{password}@{singlestore_host}/{singlestore_database}"
+    uri_with_port = (
+        f"mysql://{username}:{password}@{singlestore_host}:{singlestore_port}"
+        f"/{singlestore_database}"
     )
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
-        db_kwargs={"uri": no_port_uri},
+        db_kwargs={"uri": uri_with_port},
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -285,18 +287,20 @@ def test_minimal_dsn_with_creds(
     driver: model.DriverQuirks,
     driver_path: str,
     creds: tuple[str, str],
+    singlestore_host: str,
+    singlestore_port: str,
 ) -> None:
     """
-    Test that a minimal DSN ('user:pass@/') is valid.
-    This DSN implies a connection to the default 'tcp(localhost:3306)'.
+    Test native DSN with credentials and tcp(host:port) from the test environment,
+    with no database in the path (SELECT DATABASE() is empty).
     """
     username, password = creds
 
-    minimal_uri = f"{username}:{password}@/"
+    native_dsn = f"{username}:{password}@tcp({singlestore_host}:{singlestore_port})/"
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
-        db_kwargs={"uri": minimal_uri},
+        db_kwargs={"uri": native_dsn},
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1")
@@ -313,16 +317,19 @@ def test_plain_host_with_creds_options(
     driver: model.DriverQuirks,
     driver_path: str,
     creds: tuple[str, str],
+    singlestore_host: str,
+    singlestore_port: str,
 ) -> None:
     """
-    Tests that a plain host string
+    Tests that a plain host:port string
     is correctly combined with credentials from options.
     """
     username, password = creds
+    addr = f"{singlestore_host}:{singlestore_port}"
 
     with adbc_driver_manager.dbapi.connect(
         driver=driver_path,
-        db_kwargs={"uri": "localhost", "username": username, "password": password},
+        db_kwargs={"uri": addr, "username": username, "password": password},
     ) as conn:
         with conn.cursor() as cursor:
             cursor.execute("SELECT 1")
