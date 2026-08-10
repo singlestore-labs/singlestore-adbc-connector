@@ -34,7 +34,7 @@ class SingleStoreQuirks(model.DriverQuirks):
         connection_get_table_schema=True,
         connection_transactions=True,
         connection_set_current_catalog=True,
-        connection_set_current_schema=True,
+        connection_set_current_schema=False,
         get_objects=True,
         get_objects_constraints_check=False,
         get_objects_constraints_foreign=False,
@@ -109,6 +109,17 @@ class SingleStoreQuirks(model.DriverQuirks):
             "DROP TABLE IF EXISTS constraint_primary_multi2",
             "CREATE TABLE constraint_primary_multi2 (a INT, b INT, PRIMARY KEY(a, b))",
         ]
+
+    def query_override(self, context: str, default: str) -> str:
+        if context == "TestStatement.sample_table":
+            return "CREATE TABLE `sample_table` (id INT, value TEXT)"
+        if context in (
+            "TestConnection.test_get_table_schema_catalog",
+            "TestConnection.test_get_table_schema_schema",
+        ):
+            return default.replace("eggs VARCHAR", "eggs TEXT")
+
+        return super().query_override(context, default)
 
 
 @functools.cache

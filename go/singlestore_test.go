@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/adbc-drivers/driverbase-go/driverbase"
 	"github.com/adbc-drivers/driverbase-go/validation"
 	"github.com/apache/arrow-adbc/go/adbc"
 	"github.com/apache/arrow-go/v18/arrow"
@@ -48,12 +49,12 @@ func (q *SingleStoreQuirks) QuoteTableName(tableName string) string {
 	return "`" + strings.ReplaceAll(tableName, "`", "``") + "`"
 }
 
-func (q *SingleStoreQuirks) SetupDriver(t *testing.T) adbc.Driver {
+func (q *SingleStoreQuirks) SetupDriver(t *testing.T) driverbase.DriverWithContext {
 	q.mem = memory.NewCheckedAllocator(memory.DefaultAllocator)
 	return singlestore.NewDriver(q.mem)
 }
 
-func (q *SingleStoreQuirks) TearDownDriver(t *testing.T, _ adbc.Driver) {
+func (q *SingleStoreQuirks) TearDownDriver(t *testing.T, _ driverbase.DriverWithContext) {
 	q.mem.AssertSize(t, 0)
 }
 
@@ -182,16 +183,17 @@ func (q *SingleStoreQuirks) CreateSampleTable(tableName string, r arrow.RecordBa
 	return nil
 }
 
-func (q *SingleStoreQuirks) DropTable(cnxn adbc.Connection, tblName string) error {
-	stmt, err := cnxn.NewStatement()
+func (q *SingleStoreQuirks) DropTable(cnxn adbc.ConnectionWithContext, tblName string) error {
+	ctx := context.Background()
+	stmt, err := cnxn.NewStatement(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err = errors.Join(err, stmt.Close())
+		err = errors.Join(err, stmt.Close(ctx))
 	}()
 
-	if err = stmt.SetSqlQuery("DROP TABLE IF EXISTS " + tblName); err != nil {
+	if err = stmt.SetSqlQuery(ctx, "DROP TABLE IF EXISTS "+tblName); err != nil {
 		return err
 	}
 
@@ -206,27 +208,27 @@ func (q *SingleStoreQuirks) SampleTableSchemaMetadata(tblName string, dt arrow.D
 	switch dt.ID() {
 	case arrow.INT32:
 		metadata["sql.column_name"] = "ints"
-		metadata["sql.database_type_name"] = "int"
+		metadata["sql.database_type_name"] = "INT"
 		metadata["sql.precision"] = "10"
 		metadata["sql.scale"] = "0"
 	case arrow.INT64:
 		metadata["sql.column_name"] = "ints"
-		metadata["sql.database_type_name"] = "bigint"
+		metadata["sql.database_type_name"] = "BIGINT"
 		metadata["sql.precision"] = "19"
 		metadata["sql.scale"] = "0"
 	case arrow.STRING:
 		metadata["sql.column_name"] = "strings"
-		metadata["sql.database_type_name"] = "varchar"
+		metadata["sql.database_type_name"] = "VARCHAR"
 		metadata["sql.length"] = "255"
 	case arrow.FLOAT32:
 		metadata["sql.column_name"] = "floats"
-		metadata["sql.database_type_name"] = "float"
+		metadata["sql.database_type_name"] = "FLOAT"
 	case arrow.FLOAT64:
 		metadata["sql.column_name"] = "doubles"
-		metadata["sql.database_type_name"] = "double"
+		metadata["sql.database_type_name"] = "DOUBLE"
 	case arrow.BOOL:
 		metadata["sql.column_name"] = "bools"
-		metadata["sql.database_type_name"] = "tinyint"
+		metadata["sql.database_type_name"] = "TINYINT"
 	}
 
 	return arrow.MetadataFrom(metadata)
@@ -312,30 +314,30 @@ type SingleStoreTests struct {
 	Quirks *SingleStoreQuirks
 
 	ctx    context.Context
-	driver adbc.Driver
-	db     adbc.Database
-	cnxn   adbc.Connection
-	stmt   adbc.Statement
+	driver driverbase.Driver
+	db     adbc.DatabaseWithContext
+	cnxn   adbc.ConnectionWithContext
+	stmt   adbc.StatementWithContext
 }
 
 func (s *SingleStoreTests) SetupTest() {
 	var err error
 	s.ctx = context.Background()
 	s.driver = s.Quirks.SetupDriver(s.T())
-	s.db, err = s.driver.NewDatabase(s.Quirks.DatabaseOptions())
+	s.db, err = s.driver.NewDatabaseWithContext(s.ctx, s.Quirks.DatabaseOptions())
 	s.NoError(err)
 	s.cnxn, err = s.db.Open(s.ctx)
 	s.NoError(err)
-	s.stmt, err = s.cnxn.NewStatement()
+	s.stmt, err = s.cnxn.NewStatement(s.ctx)
 	s.NoError(err)
 }
 
 func (s *SingleStoreTests) TearDownTest() {
-	s.NoError(s.stmt.Close())
-	s.NoError(s.cnxn.Close())
+	s.NoError(s.stmt.Close(s.ctx))
+	s.NoError(s.cnxn.Close(s.ctx))
 	s.Quirks.TearDownDriver(s.T(), s.driver)
 	s.cnxn = nil
-	s.NoError(s.db.Close())
+	s.NoError(s.db.Close(s.ctx))
 	s.db = nil
 	s.driver = nil
 }
@@ -348,7 +350,7 @@ type selectCase struct {
 }
 
 func (s *SingleStoreTests) TestBulkInsertTime() {
-	s.NoError(s.stmt.SetSqlQuery("CREATE TEMPORARY TABLE test_bulk_insert_time (id INT PRIMARY KEY, t1 TIME, t2 TIME(6))"))
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, "CREATE TEMPORARY TABLE test_bulk_insert_time (id INT PRIMARY KEY, t1 TIME, t2 TIME(6))"))
 	_, err := s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
@@ -378,13 +380,13 @@ func (s *SingleStoreTests) TestBulkInsertTime() {
 	batch := batchbldr.NewRecordBatch()
 	defer batch.Release()
 
-	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestTargetTable, "test_bulk_insert_time"))
-	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
+	s.NoError(s.stmt.SetOption(s.ctx, adbc.OptionKeyIngestTargetTable, "test_bulk_insert_time"))
+	s.NoError(s.stmt.SetOption(s.ctx, adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
 	s.NoError(s.stmt.Bind(s.ctx, batch))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
-	s.NoError(s.stmt.SetSqlQuery("SELECT * FROM test_bulk_insert_time ORDER BY id"))
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, "SELECT * FROM test_bulk_insert_time ORDER BY id"))
 
 	rdr, rows, err := s.stmt.ExecuteQuery(s.ctx)
 	s.NoError(err)
@@ -404,7 +406,7 @@ func (s *SingleStoreTests) TestBulkInsertTime() {
 
 func (s *SingleStoreTests) TestBulkIngestNull() {
 	// Create test table
-	s.NoError(s.stmt.SetSqlQuery(`
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, `
 		CREATE TEMPORARY TABLE test_bulk_ingest_null (
 		  id int PRIMARY KEY,
 		  c1 LONGTEXT
@@ -446,13 +448,13 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 	s.NoError(err)
 	defer stream.Release()
 
-	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestTargetTable, "test_bulk_ingest_null"))
-	s.NoError(s.stmt.SetOption(adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
+	s.NoError(s.stmt.SetOption(s.ctx, adbc.OptionKeyIngestTargetTable, "test_bulk_ingest_null"))
+	s.NoError(s.stmt.SetOption(s.ctx, adbc.OptionKeyIngestMode, adbc.OptionValueIngestModeAppend))
 	s.NoError(s.stmt.BindStream(s.ctx, stream))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
-	s.NoError(s.stmt.SetSqlQuery("SELECT id, c1 FROM test_bulk_ingest_null ORDER BY id"))
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, "SELECT id, c1 FROM test_bulk_ingest_null ORDER BY id"))
 
 	rdr, rows, err := s.stmt.ExecuteQuery(s.ctx)
 	s.NoError(err)
@@ -490,7 +492,7 @@ func (s *SingleStoreTests) TestBulkIngestNull() {
 
 func (s *SingleStoreTests) TestSelect() {
 	// Create test table with various SingleStore types including spatial
-	s.NoError(s.stmt.SetSqlQuery(`
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, `
 		CREATE ROWSTORE TEMPORARY TABLE test_types (
 		  id int PRIMARY KEY,
 		  bool_col BOOL,
@@ -551,7 +553,7 @@ func (s *SingleStoreTests) TestSelect() {
 	s.NoError(err)
 
 	// Insert test data including spatial data
-	s.NoError(s.stmt.SetSqlQuery(`
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, `
 		INSERT INTO test_types VALUES (
 		  1,                          -- id
 		  0,                          -- bool_col
@@ -666,11 +668,11 @@ func (s *SingleStoreTests) TestSelect() {
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
-	s.NoError(s.stmt.SetSqlQuery("SET @@SESSION.enable_extended_types_metadata=on"))
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, "SET @@SESSION.enable_extended_types_metadata=on"))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
-	s.NoError(s.stmt.SetSqlQuery("SET @@SESSION.vector_type_project_format=JSON"))
+	s.NoError(s.stmt.SetSqlQuery(s.ctx, "SET @@SESSION.vector_type_project_format=JSON"))
 	_, err = s.stmt.ExecuteUpdate(s.ctx)
 	s.NoError(err)
 
@@ -1534,7 +1536,7 @@ func (s *SingleStoreTests) TestSelect() {
 		},
 	} {
 		s.Run(testCase.name, func() {
-			s.NoError(s.stmt.SetSqlQuery(testCase.query))
+			s.NoError(s.stmt.SetSqlQuery(s.ctx, testCase.query))
 
 			rdr, rows, err := s.stmt.ExecuteQuery(s.ctx)
 			s.NoError(err)
@@ -1564,10 +1566,10 @@ type SingleStoreTestSuite struct {
 	dsn    string
 	mem    *memory.CheckedAllocator
 	ctx    context.Context
-	driver adbc.Driver
-	db     adbc.Database
-	cnxn   adbc.Connection
-	stmt   adbc.Statement
+	driver driverbase.Driver
+	db     adbc.DatabaseWithContext
+	cnxn   adbc.ConnectionWithContext
+	stmt   adbc.StatementWithContext
 }
 
 func (s *SingleStoreTestSuite) SetupSuite() {
@@ -1581,7 +1583,7 @@ func (s *SingleStoreTestSuite) SetupSuite() {
 	s.mem = memory.NewCheckedAllocator(memory.DefaultAllocator)
 
 	s.driver = singlestore.NewDriver(s.mem)
-	s.db, err = s.driver.NewDatabase(map[string]string{
+	s.db, err = s.driver.NewDatabaseWithContext(s.ctx, map[string]string{
 		adbc.OptionKeyURI: s.dsn,
 	})
 	s.NoError(err)
@@ -1589,19 +1591,19 @@ func (s *SingleStoreTestSuite) SetupSuite() {
 	s.cnxn, err = s.db.Open(s.ctx)
 	s.NoError(err)
 
-	s.stmt, err = s.cnxn.NewStatement()
+	s.stmt, err = s.cnxn.NewStatement(s.ctx)
 	s.NoError(err)
 }
 
 func (s *SingleStoreTestSuite) TearDownSuite() {
 	if s.stmt != nil {
-		s.NoError(s.stmt.Close())
+		s.NoError(s.stmt.Close(s.ctx))
 	}
 	if s.cnxn != nil {
-		s.NoError(s.cnxn.Close())
+		s.NoError(s.cnxn.Close(s.ctx))
 	}
 	if s.db != nil {
-		s.NoError(s.db.Close())
+		s.NoError(s.db.Close(s.ctx))
 	}
 	s.mem.AssertSize(s.T(), 0)
 }

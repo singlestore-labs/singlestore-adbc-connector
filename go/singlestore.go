@@ -76,8 +76,8 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 		metadata := arrow.MetadataFrom(metadataMap)
 		return arrow.BinaryTypes.String, nullable, metadata, nil
 
-	case "TIMESTAMP":
-		var timestampType arrow.DataType
+	case "TIMESTAMP", "DATETIME":
+		var timestampType *arrow.TimestampType
 		metadataMap := map[string]string{
 			sqlwrapper.MetaKeyDatabaseTypeName: colType.DatabaseTypeName,
 			sqlwrapper.MetaKeyColumnName:       colType.Name,
@@ -90,10 +90,14 @@ func (m *singlestoreTypeConverter) ConvertRawColumnType(colType sqlwrapper.Colum
 				precision = 6
 			}
 			timeUnit := arrow.TimeUnit(precision / 3)
-			timestampType = &arrow.TimestampType{Unit: timeUnit, TimeZone: "UTC"}
+			timestampType = &arrow.TimestampType{Unit: timeUnit}
 		} else {
 			// No precision info available, default to microseconds (most common)
-			timestampType = &arrow.TimestampType{Unit: arrow.Microsecond, TimeZone: "UTC"}
+			timestampType = &arrow.TimestampType{Unit: arrow.Microsecond}
+		}
+
+		if typeName == "TIMESTAMP" {
+			timestampType.TimeZone = "UTC"
 		}
 
 		metadata := arrow.MetadataFrom(metadataMap)
@@ -450,7 +454,7 @@ func (ins *singlestoreBitInserter) AppendValue(sqlValue any) error {
 
 // ConvertArrowToGo implements SingleStore-specific Arrow value to Go value conversion
 func (m *singlestoreTypeConverter) ConvertArrowToGo(arrowArray arrow.Array, index int, field *arrow.Field) (any, error) {
-	if arrowArray.IsNull(index) {
+	if arrowArray.DataType().ID() == arrow.NULL || arrowArray.IsNull(index) {
 		return nil, nil
 	}
 
@@ -674,7 +678,7 @@ func (f *singlestoreConnectionFactory) CreateConnection(
 }
 
 // NewDriver constructs the ADBC Driver for "singlestore".
-func NewDriver(alloc memory.Allocator) adbc.Driver {
+func NewDriver(alloc memory.Allocator) driverbase.DriverWithContext {
 	vendorName := "SingleStore"
 	typeConverter := &singlestoreTypeConverter{
 		DefaultTypeConverter: sqlwrapper.DefaultTypeConverter{VendorName: vendorName},

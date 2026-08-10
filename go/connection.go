@@ -36,9 +36,9 @@ import (
 )
 
 // GetCurrentCatalog implements driverbase.CurrentNamespacer.
-func (c *singlestoreConnectionImpl) GetCurrentCatalog() (string, error) {
+func (c *singlestoreConnectionImpl) GetCurrentCatalog(ctx context.Context) (string, error) {
 	var database string
-	err := c.Db.QueryRowContext(context.Background(), "SELECT DATABASE()").Scan(&database)
+	err := c.Db.QueryRowContext(ctx, "SELECT DATABASE()").Scan(&database)
 	if err != nil {
 		return "", c.ErrorHelper.WrapIO(err, "failed to get current database")
 	}
@@ -49,18 +49,18 @@ func (c *singlestoreConnectionImpl) GetCurrentCatalog() (string, error) {
 }
 
 // GetCurrentDbSchema implements driverbase.CurrentNamespacer.
-func (c *singlestoreConnectionImpl) GetCurrentDbSchema() (string, error) {
+func (c *singlestoreConnectionImpl) GetCurrentDbSchema(ctx context.Context) (string, error) {
 	return "", nil
 }
 
 // SetCurrentCatalog implements driverbase.CurrentNamespacer.
-func (c *singlestoreConnectionImpl) SetCurrentCatalog(catalog string) error {
-	_, err := c.Db.ExecContext(context.Background(), "USE "+c.QuoteIdentifier(catalog))
-	return err
+func (c *singlestoreConnectionImpl) SetCurrentCatalog(ctx context.Context, catalog string) error {
+	_, err := c.Db.ExecContext(ctx, "USE "+c.QuoteIdentifier(catalog))
+	return c.ErrorHelper.WrapIO(err, "failed to set current catalog")
 }
 
 // SetCurrentDbSchema implements driverbase.CurrentNamespacer.
-func (c *singlestoreConnectionImpl) SetCurrentDbSchema(schema string) error {
+func (c *singlestoreConnectionImpl) SetCurrentDbSchema(ctx context.Context, schema string) error {
 	if schema != "" {
 		return c.ErrorHelper.InvalidArgument("cannot set schema in SingleStore: schemas are not supported")
 	}
@@ -89,6 +89,7 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 		CharacterMaximumLength sql.NullInt64
 		NumericPrecision       sql.NullInt64
 		NumericScale           sql.NullInt64
+		DatetimePrecision      sql.NullInt64
 	}
 
 	query := `SELECT
@@ -98,7 +99,8 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 		IS_NULLABLE,
 		CHARACTER_MAXIMUM_LENGTH,
 		NUMERIC_PRECISION,
-		NUMERIC_SCALE
+		NUMERIC_SCALE,
+		DATETIME_PRECISION
 	FROM INFORMATION_SCHEMA.COLUMNS
 	WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?
 	ORDER BY ORDINAL_POSITION`
@@ -109,7 +111,7 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 		args = []any{*catalog, tableName}
 	} else {
 		// Use current database
-		currentDB, err := c.GetCurrentCatalog()
+		currentDB, err := c.GetCurrentCatalog(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -136,6 +138,7 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 			&col.CharacterMaximumLength,
 			&col.NumericPrecision,
 			&col.NumericScale,
+			&col.DatetimePrecision,
 		)
 		if err != nil {
 			return nil, c.ErrorHelper.WrapIO(err, "failed to scan column information")
@@ -159,16 +162,20 @@ func (c *singlestoreConnectionImpl) GetTableSchema(ctx context.Context, catalog 
 		if col.CharacterMaximumLength.Valid {
 			length = &col.CharacterMaximumLength.Int64
 		}
-		if col.NumericPrecision.Valid {
+
+		if col.DatetimePrecision.Valid {
+			precision = &col.DatetimePrecision.Int64
+		} else if col.NumericPrecision.Valid {
 			precision = &col.NumericPrecision.Int64
 		}
+
 		if col.NumericScale.Valid {
 			scale = &col.NumericScale.Int64
 		}
 
 		colType := sqlwrapper.ColumnType{
 			Name:             col.ColumnName,
-			DatabaseTypeName: col.DataType,
+			DatabaseTypeName: strings.ToUpper(col.DataType),
 			Nullable:         col.IsNullable == "YES",
 			Length:           length,
 			Precision:        precision,
@@ -331,6 +338,7 @@ func (c *singlestoreConnectionImpl) ExecuteBulkIngest(ctx context.Context, conn 
 
 	result, err := conn.ExecContext(ctx, loadDataQuery)
 	if err != nil {
+
 		return -1, c.ErrorHelper.WrapIO(err, "failed to load data")
 	}
 
@@ -368,8 +376,23 @@ func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, con
 		// Create the table (fail if exists)
 		return c.createTable(ctx, conn, catalogName, tableName, schema, false, options.Temporary)
 	case adbc.OptionValueIngestModeCreateAppend:
+		existingSchema, err := c.GetTableSchema(ctx, &catalogName, nil, tableName)
+		if err == nil {
+			if !hasAllColumns(existingSchema, schema) {
+				return c.ErrorHelper.AlreadyExists(
+					"table %s already exists and doesn't have all incoming columns",
+					c.QuoteTableID(catalogName, tableName),
+				)
+			}
+			return nil
+		}
+		if !isNotFound(err) {
+			return err
+		}
+
 		// Create the table if it doesn't exist
-		return c.createTable(ctx, conn, catalogName, tableName, schema, true, options.Temporary)
+		return c.createTable(ctx, conn, catalogName, tableName, schema, false, options.Temporary)
+
 	case adbc.OptionValueIngestModeReplace:
 		// Drop and recreate the table
 		if err := c.dropTable(ctx, conn, catalogName, tableName); err != nil {
@@ -382,6 +405,25 @@ func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, con
 	default:
 		return c.ErrorHelper.InvalidArgument("unsupported ingest mode: %s", options.Mode)
 	}
+}
+
+// isNotFound reports whether err is an ADBC "not found" error
+func isNotFound(err error) bool {
+	var adbcErr adbc.Error
+	return errors.As(err, &adbcErr) && adbcErr.Code == adbc.StatusNotFound
+}
+
+// hasAllColumns reports whether the existing table provides every column the incoming data has
+func hasAllColumns(existing, incoming *arrow.Schema) bool {
+	if existing.NumFields() < incoming.NumFields() {
+		return false
+	}
+	for i := 0; i < incoming.NumFields(); i++ {
+		if !existing.HasField(incoming.Field(i).Name) {
+			return false
+		}
+	}
+	return true
 }
 
 // createTable creates a SingleStore table from Arrow schema
@@ -505,12 +547,12 @@ func (c *singlestoreConnectionImpl) arrowToSingleStoreType(arrowType arrow.DataT
 	return singlestoreType
 }
 
-func (c *singlestoreConnectionImpl) SetOption(key string, val string) error {
+func (c *singlestoreConnectionImpl) SetOption(ctx context.Context, key string, val string) error {
 	if strings.ToLower(key) == adbc.OptionKeyAutoCommit {
 		switch strings.ToLower(val) {
 		case adbc.OptionValueEnabled:
 			if c.Conn != nil {
-				_, err := c.Conn.ExecContext(context.Background(), "SET AUTOCOMMIT = 1")
+				_, err := c.Conn.ExecContext(ctx, "SET AUTOCOMMIT = 1")
 				if err == nil {
 					c.Autocommit = true
 				}
@@ -521,7 +563,7 @@ func (c *singlestoreConnectionImpl) SetOption(key string, val string) error {
 			return nil
 		case adbc.OptionValueDisabled:
 			if c.Conn != nil {
-				_, err := c.Conn.ExecContext(context.Background(), "SET AUTOCOMMIT = 0")
+				_, err := c.Conn.ExecContext(ctx, "SET AUTOCOMMIT = 0")
 				if err == nil {
 					c.Autocommit = false
 				}
@@ -535,7 +577,7 @@ func (c *singlestoreConnectionImpl) SetOption(key string, val string) error {
 		}
 	}
 
-	return c.ConnectionImplBase.SetOption(key, val)
+	return c.ConnectionImplBase.SetOption(ctx, key, val)
 }
 
 func (c *singlestoreConnectionImpl) Commit(ctx context.Context) error {
