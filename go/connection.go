@@ -369,7 +369,10 @@ func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, con
 		return c.createTable(ctx, conn, catalogName, tableName, schema, false, options.Temporary)
 	case adbc.OptionValueIngestModeCreateAppend:
 		// Create the table if it doesn't exist
-		return c.createTable(ctx, conn, catalogName, tableName, schema, true, options.Temporary)
+		if err := c.createTable(ctx, conn, catalogName, tableName, schema, true, options.Temporary); err != nil {
+			return err
+		}
+		return c.checkTableColumns(ctx, conn, catalogName, tableName, schema)
 	case adbc.OptionValueIngestModeReplace:
 		// Drop and recreate the table
 		if err := c.dropTable(ctx, conn, catalogName, tableName); err != nil {
@@ -382,6 +385,42 @@ func (c *singlestoreConnectionImpl) createTableIfNeeded(ctx context.Context, con
 	default:
 		return c.ErrorHelper.InvalidArgument("unsupported ingest mode: %s", options.Mode)
 	}
+}
+
+// checkTableColumns verifies that an existing table has the same columns as
+// the incoming Arrow schema. Data types are intentionally not compared.
+func (c *singlestoreConnectionImpl) checkTableColumns(ctx context.Context, conn *sqlwrapper.LoggingConn, catalogName string, tableName string, schema *arrow.Schema) (err error) {
+	query := fmt.Sprintf("SELECT * FROM %s LIMIT 0", c.QuoteTableID(catalogName, tableName))
+	rows, err := conn.QueryContext(ctx, query)
+	if err != nil {
+		return c.ErrorHelper.WrapIO(err, "failed to inspect existing table schema")
+	}
+	defer func() {
+		err = errors.Join(err, rows.Close())
+	}()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return c.ErrorHelper.WrapIO(err, "failed to inspect existing table columns")
+	}
+	if tableColumnsMatchSchema(columns, schema) {
+		return nil
+	}
+
+	return c.ErrorHelper.AlreadyExists(
+		"table %s already exists with incompatible columns", c.QuoteTableID(catalogName, tableName))
+}
+
+func tableColumnsMatchSchema(columns []string, schema *arrow.Schema) bool {
+	if len(columns) != schema.NumFields() {
+		return false
+	}
+	for i, column := range columns {
+		if column != schema.Field(i).Name {
+			return false
+		}
+	}
+	return true
 }
 
 // createTable creates a SingleStore table from Arrow schema
