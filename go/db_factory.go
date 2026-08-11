@@ -87,7 +87,8 @@ func (f *SingleStoreDBFactory) forceUTCTimezone(dsn string, logger *slog.Logger)
 
 // BuildSingleStoreDSN constructs a SingleStore DSN from the provided options.
 // Handles the following scenarios:
-//  1. SingleStore URI: "mysql://user:pass@host:port/schema?params" → converted to DSN
+//  1. SingleStore URI: "singlestore://user:pass@host:port/schema?params" → converted to DSN
+//     Also supports "mysql://" prefix for MySQL-compatible URIs
 //  2. Full DSN: "user:pass@tcp(host:port)/db" → returned as-is or credentials updated
 //  3. Plain host + credentials: "localhost:3306" + username/password → converted to DSN
 func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (string, error) {
@@ -102,8 +103,8 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 		return "", fmt.Errorf("missing required option %s", adbc.OptionKeyURI)
 	}
 
-	// Check if this is a SingleStore URI (mysql://)
-	if strings.HasPrefix(baseURI, "mysql://") {
+	// Check if this is a SingleStore URI (singlestore:// or mysql://)
+	if strings.HasPrefix(baseURI, "singlestore://") || strings.HasPrefix(baseURI, "mysql://") {
 		return f.parseToSingleStoreDSN(baseURI, username, password, autocommit)
 	}
 
@@ -114,11 +115,12 @@ func (f *SingleStoreDBFactory) BuildSingleStoreDSN(opts map[string]string) (stri
 }
 
 // parseToSingleStoreDSN converts a SingleStore URI to SingleStore DSN format.
+// Accepts both singlestore:// and mysql:// URI schemes.
 // Examples:
 //
-//	mysql://root@localhost:3306/demo → root@tcp(localhost:3306)/demo
-//	mysql://user:pass@host/db?charset=utf8mb4 → user:pass@tcp(host:3306)/db?charset=utf8mb4
-//	mysql://user@(/path/to/socket.sock)/db → user@unix(/path/to/socket.sock)/db
+//	singlestore://root@localhost:3306/demo → root@tcp(localhost:3306)/demo
+//	singlestore://user:pass@host/db?charset=utf8mb4 → user:pass@tcp(host:3306)/db?charset=utf8mb4
+//	singlestore://user@(/path/to/socket.sock)/db → user@unix(/path/to/socket.sock)/db
 func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, password, autocommit string) (string, error) {
 	u, err := url.Parse(singlestoreURI)
 	if err != nil {
@@ -146,7 +148,7 @@ func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, p
 	// SingleStore socket URIs have non-standard hostname patterns that require special handling after parsing.
 	switch u.Hostname() {
 	case "(":
-		// Case 1: Socket with parentheses: mysql://user@(/path/to/socket.sock)/db
+		// Case 1: Socket with parentheses: singlestore://user@(/path/to/socket.sock)/db
 		cfg.Net = "unix"
 
 		closeParenIndex := strings.Index(u.Path, ")")
@@ -159,8 +161,8 @@ func (f *SingleStoreDBFactory) parseToSingleStoreDSN(singlestoreURI, username, p
 
 	case "":
 		// Case 2: Empty host is invalid - hostname must be explicit
-		// Use parentheses syntax for sockets: mysql://user@(/path/to/socket)/db
-		return "", fmt.Errorf("missing hostname in URI: %s. Use explicit hostname or socket syntax: mysql://user@(socketpath)/db", singlestoreURI)
+		// Use parentheses syntax for sockets: singlestore://user@(/path/to/socket)/db
+		return "", fmt.Errorf("missing hostname in URI: %s. Use explicit hostname or socket syntax: singlestore://user@(socketpath)/db", singlestoreURI)
 
 	default:
 		// Case 3: Regular TCP connection with a hostname
