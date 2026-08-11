@@ -14,11 +14,19 @@
 # limitations under the License.
 
 import argparse
+import functools
 from pathlib import Path
 
 import adbc_drivers_validation.generate_documentation as generate_documentation
+import adbc_drivers_validation.model as model
 
 from . import singlestore
+
+
+@functools.cache
+def get_quirks(version: str, *, vendor: str) -> model.DriverQuirks:
+    return singlestore.SingleStoreQuirks()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -30,7 +38,11 @@ if __name__ == "__main__":
 
     reports = [report.resolve() for report in Path(".").glob("validation-report*.xml")]
     generate_documentation.generate(
-        singlestore.get_quirks,
+        "singlestore",
+        get_quirks,
+        [
+            ("singlestore", "SingleStore"),
+        ],
         reports,
         template,
         args.output.resolve(),
