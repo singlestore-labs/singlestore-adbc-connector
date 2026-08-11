@@ -62,6 +62,21 @@ To release a new version:
    git push origin go/v1.0.1
    ```
 
+   Pre-releases use a hyphen-separated suffix, for example `go/v1.0.1-beta.1`
+   or `go/v1.0.1-rc.1`. Python-style suffixes such as `go/v1.0.1b1` are not
+   valid semantic versions: the tag becomes the driver version reported by
+   `adbc_get_info()`, and the ADBC validation suite rejects it, so the release
+   fails in the `Validate` job. The build refuses such tags up front (see
+   [`go/ci/scripts/pre-build.sh`](go/ci/scripts/pre-build.sh)).
+
+   If you pushed a tag with an invalid format, delete it before re-tagging, so
+   that it cannot be picked up as the version of a later build:
+
+   ```bash
+   git tag -d go/v1.0.1b1
+   git push origin :refs/tags/go/v1.0.1b1
+   ```
+
    This triggers the [Go Release workflow](.github/workflows/go_release.yaml), which:
 
    - Builds the driver for Linux, macOS, and Windows
