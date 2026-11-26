@@ -13,9 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# !!!! AUTO-GENERATED FILE.  DO NOT EDIT. !!!!
-# USE adbc-gen-workflow (see adbc-drivers/dev) TO UPDATE THIS FILE.
-
 # This is a common workflow for building & testing Go drivers:
 #
 # - Build the driver
@@ -276,6 +273,10 @@ jobs:
     permissions:
       contents: read
       packages: read
+      id-token: write
+
+    env:
+      SIGN_WINDOWS_DLL: ${{ matrix.platform == 'windows' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -316,6 +317,39 @@ jobs:
           fi
           set +a
           pixi run adbc-make check CI=true VERBOSE=true DRIVER=singlestore
+
+      - name: Azure Login
+        if: env.SIGN_WINDOWS_DLL == 'true'
+        uses: azure/login@a641126d1b8aa4d1fa005f4f92df94a3a4c4c906  # v3.1.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows driver DLL
+        if: env.SIGN_WINDOWS_DLL == 'true'
+        shell: pwsh
+        env:
+          AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          dotnet tool install -g --prerelease sign
+          # 'dotnet tool install -g' does not always update PATH of the running session
+          $sign = Join-Path $env:USERPROFILE ".dotnet\tools\sign.exe"
+          $dll = "go/build/libadbc_driver_singlestore.dll"
+
+          & $sign code artifact-signing `
+            --artifact-signing-endpoint "$env:AZURE_SIGNING_ENDPOINT" `
+            --artifact-signing-account "$env:AZURE_SIGNING_ACCOUNT" `
+            --artifact-signing-certificate-profile "$env:AZURE_SIGNING_PROFILE" `
+            --timestamp-url "http://timestamp.acs.microsoft.com" `
+            $dll
+          if ($LASTEXITCODE -ne 0) { throw "Signing failed with exit code $LASTEXITCODE" }
+
+          $status = (Get-AuthenticodeSignature $dll).Status
+          if ($status -ne "Valid") { throw "$dll signature is not valid: $status" }
 
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
